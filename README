@@ -1,0 +1,17 @@
+VirtualNascom, a Nascom II emulator/simulator version 1.0
+
+This is a version 1.0, which although not finished is already very
+useful (runs every program I've tried).
+
+This is based on Yaze, and thus share it's copyright.  I should
+improve the interface, but for now to run, use:
+
+  ./xvirtualnascom [-m monitor.nal] [-v] [app.nal]
+
+VirtualNascom expects to find `nassys.nal' (unless you changed that
+with -m) and `basic.nal' upon startup.  You can add files to be loaded
+by givin them as arguments at the end of the line.
+
+Tommy Thorn 
+thorn@daimi.au.dk
+23/2-2000

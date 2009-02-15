@@ -1,0 +1,44 @@
+TODO:
+- Complete the keyboard emulation
+
+  Currently we try hard to map X keys to nascom keys.  This has some
+  problems as shift goes to shift, eg when you press Shift-2 to get @,
+  nascom will actually get 'shift' '2' and make the '"'
+
+  Doing a more standard emulation will loose the possibility of
+  emulating shift keys.  Ideally, there should be an invokation flag
+  to chose between the two ways of doing it as it really depends on 
+  the application.  Most wont need the shift event.
+
+- Emulate the UART
+
+  It should be fairly simple to log all serial output to a file, and
+  getting serial input from a file (prompting for a new one, once the
+  end of the first is reached).
+
+  I'd need to find the hardware information about the UART though.
+
+- Precise timings
+
+  A rough, but machine independ job should be easily done.
+
+- Emulate sound
+
+  Requires precise timings.  This could be simple on machines with
+  sound support: just keep an output channel open and pipe the status
+  of the speaker out.
+
+- Complete hardware emulation
+
+  Check other ports that require emulation
+
+- Internal structure
+
+  The current organisation is a bit of a quick hack, but it works
+  fairly well.
+
+  The current PutBYTE hold quite an overhead to trap writes to
+  screen-memory and ROM, but if we want to make the write-protect to
+  ROM areas this is hard to avoid anyway.
+
+- Screen: Are Nascom characters really 16 pixels high?

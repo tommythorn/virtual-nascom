@@ -1,0 +1,58 @@
+Yet Another Z80 Emulator
+========================
+
+Yaze is a Z80 and CP/M emulator designed to run on Unix systems.
+
+The package consists of:
+
+* an instruction set simulator which accurately imitates a real Z80
+  microprocessor,
+
+* a CP/M-2.2 bios written in C which runs on the Unix host but
+  interacts with the simulated Z80,
+
+* a monitor which loads CP/M into the simulated processor's ram and
+  which makes Unix directories or files look like CP/M disks, and
+
+* a separate program (cdm) which creates and manipulates CP/M disk
+  images for use with yaze.
+
+Yaze's "selling points", compared with previously available Z80
+emulators, are:
+
+* It emulates all documented and most undocumented processor-internal
+  instructions and all flag bits (all 8, including the undocumented
+  ones).  A test program is included in the package which exhaustively
+  (well, nearly exhaustively) compares all instructions, for all
+  machine states before and after execution, against the results from
+  a real chip.
+
+* It is independent of the host machine architecture and instruction
+  set.  Written in ANSI standard C it is provided with full source
+  code under the GNU General Public License.
+
+* It supports all CP/M disk geometries in the form of images in Unix
+  files or as read-only disks constructed on-the-fly from the contents
+  of Unix directories.  These disks are indistinguishable from real
+  disks for even the most inquisitive, low-level CP/M programs.  They
+  can be mounted and unmounted at will during emulation.
+
+
+
+Frank Cringle, October 1995
+fdc@cliwe.ping.de
+
+
+Various trademarks are the property of various organisations.
+
+Version 1.10
+
+This is the first release of yaze since version 1.06 came out about 2
+years ago.
+
+It was prompted by Michael Haardt's work on emulation of non-CP/M
+Z80-Systems.  He contributed the io.c file and the bank switching
+memory logic, which may provide a platform for running MP/M and UZI on 
+the emulator.
+
+Frank Cringle, January 1998
