@@ -1,0 +1,15 @@
+2000-04-03  Tommy Thorn  <thorn@brics.dk>
+
+	* Released version 1.0.1
+
+	* nascom.c: Hack from Duncan McIntyre <duncan@emarketeers.com>
+                    While we await a proper solution we allow ' to mean :
+	            on keyboard input.
+
+2000-03-09  Tommy Thorn  <thorn@brics.dk>
+
+	* nascom.c: moved the keyboard handling from xvirtualnascom.c
+
+	* Makefile: tried to improved the configuration slightly; now
+	compilation on Solaris and Linux are supported out of the box.
+

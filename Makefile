@@ -1,54 +1,36 @@
 # Makefile for VirtualNascom
 
 # CC must be an ANSI-C compiler
-CC            =	gcc
-
-#where you want the binaries and manual page
-BINDIR	      = /usr/local/bin
-MANDIR	      = /usr/local/man/man1
-LIBDIR	      = /usr/local/lib
+CC            =gcc
 
 # full speed or debugging to taste
-OPTIMIZE      = -O2
+OPTIMIZE      =-O2
 #OPTIMIZE       = -g
-
-# -DUSE_GNU_READLINE for command recall/editing and filename completion
-# -DBGii_BUG works around a problem in Backgrounder II
-# -DBIOS to build a CP/M bios and monitor program into the emulator
-#  (see also VIRTUALNASCOM_OBJS, below)
-# -DMMU compiles in support for bank-switched memory
-# -DMEMSIZE <val> sets size of memory in KBytes (default 64)
-# solaris2 needs -D__EXTENSIONS__
-# linux needs -D_POSIX_SOURCE
-OPTIONS	      =
+CFLAGS        =	$(OPTIMIZE) # $(CWARN) 
 
 VIRTUALNASCOM_OBJS = simz80.o nascom.o xvirtualnascom.o
 
-LIBS	      = -lXpm -lXt -lX -lm
-
-# a bsd-like install program (/usr/ucb/install on Solaris2)
-INSTALL	      = install
-
+LIBS	      =-lXpm -lXt -lX -lm
 
 ###### you should not need to change anything below this line ######
 CWARN	      = -ansi -pedantic -Wall -Wshadow \
 		-Wpointer-arith -Wnested-externs -Winline
-CFLAGS        =	$(CWARN) $(OPTIMIZE) $(OPTIONS) -DLIBDIR=\"$(LIBDIR)/\"
 
-DOC	      = README README.yaze COPYING
+all:		
+		-@echo Use \`make linux\' or \`make solaris\'
 
-all:		xvirtualnascom
+linux:		$(VIRTUALNASCOM_OBJS)
+		$(CC) $(CFLAGS) $(VIRTUALNASCOM_OBJS) -o xvirtualnascom \
+		 -L/usr/X11R6/lib -lXpm -lXt
 
-xvirtualnascom:	$(VIRTUALNASCOM_OBJS)
-		$(CC) $(CFLAGS) $(VIRTUALNASCOM_OBJS) $(LIBS) -o $@
+solaris:	$(VIRTUALNASCOM_OBJS)
+		$(CC) $(CFLAGS) $(VIRTUALNASCOM_OBJS) -o xvirtualnascom \
+		-lXpm -lXt -lX -lm
 
 simz80.c:	simz80.pl
 		rm -f simz80.c
 		perl -w simz80.pl >simz80.c
 		chmod a-w simz80.c
-
-install:	all
-		$(INSTALL) -s -c -m 755 xvirtualnascom $(BINDIR)
 
 clean:;		rm -f *.o *~ core
 

@@ -1,0 +1,12 @@
+What follows is list of the tokens recoqnisezed by the Nascom
+Microsoft Basic:
+
+  * + - ^ / < = > ABS AND ASC ATN CHR$ CLEAR CLOAD CLS CONT COS CSAVE
+  DATA DEEK DEF DIM DOKE END EXP FN FOR FRE GOSUB GOTO IF INP INPUT
+  INT LEFT$ LEN LET LINES LIST LOG MID$ MONITOR NEW NEXT NOT NULL ON
+  OR OUT PEEK POINT POKE POS PRINT READ REM RESET RESTORE RETURN
+  RIGHT$ RND RUN SCREEN SET SGN SIN SPC( SQR STEP STOP STR$ TAB( TAN
+  THEN TO USR VAL WAIT WIDTH
+
+These are extracted directly from the binary image, so this list
+should be complete (yes, SPC and TAB do have the opening parenthesis).

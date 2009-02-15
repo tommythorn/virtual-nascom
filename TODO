@@ -1,4 +1,14 @@
 TODO:
+- Bug fixes
+
+  Currently keyboard input is only accepted with the mouse cursor
+  above the window (donno why).  Likely related: doesn't work with the
+  AfterStep window manager.
+
+- Precise timings
+
+  A rough, but machine independent job should be easily done.
+
 - Complete the keyboard emulation
 
   Currently we try hard to map X keys to nascom keys.  This has some
@@ -10,6 +20,8 @@ TODO:
   to chose between the two ways of doing it as it really depends on 
   the application.  Most wont need the shift event.
 
+- Use autoconfigure
+
 - Emulate the UART
 
   It should be fairly simple to log all serial output to a file, and
@@ -17,10 +29,6 @@ TODO:
   end of the first is reached).
 
   I'd need to find the hardware information about the UART though.
-
-- Precise timings
-
-  A rough, but machine independ job should be easily done.
 
 - Emulate sound
 

@@ -41,6 +41,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 #include <stdio.h>
 
+#include <X11/Intrinsic.h>
+#include <X11/StringDefs.h>
+#include <X11/Xos.h>
+#include <X11/cursorfont.h>
+#include <X11/Xutil.h>
+#include <X11/xpm.h>
+
+#define XK_MISCELLANY 1
+#include <X11/keysymdef.h>
+
+#include <ctype.h>
+
 #include "simz80.h"
 #include "xvirtualnascom.h"
 
@@ -118,3 +130,64 @@ void slow_write(unsigned int a, unsigned char v)
   if (0x800 <= a && a <= 0xE000)
     RAM(a) = v;
 }
+
+static char * kbd_translation[] = {
+/* 0 */  "xxxxxxxx",
+/* 1 */  "xyTXF5BH",
+/* 2 */  "xyYZD6NJ",
+/* 3 */  "xyUSE7MK",
+/* 4 */  "xyIAW8,L",
+/* 5 */  "xxOQ39.;",
+/* 6 */  "x[P120/'",
+/* 7 */  "x]R C4VG",
+/* 8 */  "x\rxxx-\n\007"
+};
+
+void EventHandler(Widget w, caddr_t data, XEvent *ev)
+{
+  KeySym keysym;
+  int i = -1, bit = 0;
+
+  if (ev->xany.type != KeyPress && ev->xany.type != KeyRelease)
+    return;
+
+  keysym = XKeycodeToKeysym(dpy, ev->xkey.keycode, 0);
+
+  if ((unsigned long) keysym < 128) {
+    int ch = toupper(keysym);
+    for (i = 0; i < 9; ++i)
+      for (bit = 0; bit < 8; ++bit)
+	if (kbd_translation[i][7-bit] == ch)
+	  goto found;
+    i = -1;
+  found:;
+  } else 
+    switch (keysym) {
+    case XK_Shift_L:
+    case XK_Shift_R:   i = 0, bit = 4; break;
+    case XK_Up:        i = 1, bit = 6; break;
+    case XK_Left:      i = 2, bit = 6; break;
+    case XK_Down:      i = 3, bit = 6; break;
+    case XK_Right:     i = 4, bit = 6; break;
+    case XK_BackSpace: i = 8, bit = 0; break;
+    case XK_Return:    i = 8, bit = 1; break;
+    case XK_End:
+      {
+	/* Undocumented hack */
+	FILE *f;
+	f = fopen("screendump", "w");
+	fwrite((const void *) (ram+0x800), 1, 1024, f);
+	fclose(f);
+	if (vflag) printf("Screen dumped\n");
+      }
+      break;
+    }
+
+  if (i != -1) {
+    if (ev->xany.type == KeyPress)
+      keym[i] |= 1 << bit;
+    else
+      keym[i] &= ~(1 << bit);
+  }
+}
+
