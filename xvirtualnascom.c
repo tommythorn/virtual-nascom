@@ -1,5 +1,5 @@
 /*   VirtualNascom, a Nascom II emulator.
- 
+
    Copyright (C) 2000  Tommy Thorn
    Copyright (C) 1995,1998  Frank D. Cringle.
 
@@ -379,9 +379,9 @@ void RepaintCanvas(Widget w, caddr_t data, XEvent *ev)
   /* The Nascom screen memory has the top line be line 15 with
      line 0-14 just following it.  Yes, stupid indeed */
 
-  for (x = 0; x < 48; ++x) 
+  for (x = 0; x < 48; ++x)
     xputch(x, 0, RAM(0x80a+64*15+x));
-		
+
   for (y = 0; y < 15; ++y)
     for (x = 0; x < 48; ++x)
       xputch(x, y+1, RAM(0x80a+y*64+x));

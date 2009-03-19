@@ -4,9 +4,10 @@
 CC            =gcc
 
 # full speed or debugging to taste
-OPTIMIZE      =-O2
-#OPTIMIZE       = -g
-CFLAGS        =	$(OPTIMIZE) # $(CWARN) 
+#OPTIMIZE      =-O2
+OPTIMIZE      = -g
+WARN          = -Wmost -Werror
+CFLAGS        =	$(OPTIMIZE) $(WARN)
 
 VIRTUALNASCOM_OBJS = simz80.o nascom.o xvirtualnascom.o
 
@@ -16,7 +17,16 @@ LIBS	      =-lXpm -lXt -lX -lm
 CWARN	      = -ansi -pedantic -Wall -Wshadow \
 		-Wpointer-arith -Wnested-externs -Winline
 
-all:		
+sdl-nascom: sdl-nascom.o simz80.o nascom.o
+	$(CC) $(shell sdl-config --libs) $^ -o $@
+
+sdl-nascom.o: sdl-nascom.c
+	$(CC) $(CFLAGS) $(shell sdl-config --cflags) -c $< -o $@
+
+ascii-nascom: ascii-nascom.o simz80.o nascom.o
+	$(CC) $(CFLAGS) $^ -o $@
+
+all:
 		-@echo Use \`make linux\' or \`make solaris\'
 
 linux:		$(VIRTUALNASCOM_OBJS)
