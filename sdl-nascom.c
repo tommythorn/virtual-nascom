@@ -46,13 +46,14 @@
 #include "nascom.h"
 #include <SDL.h>
 
-#define FONT_H 16
-#define FONT_W  8
+#define FONT_H_PITCH 16
+#define FONT_H       15
+#define FONT_W        8
 
 static SDL_Surface *screen;
 static struct font {
-        SDL_Surface *surf;
-        int w, h;
+    SDL_Surface *surf;
+    int w, h, h_pitch;
 } nascom_font;
 
 static unsigned framebuffer_generation;
@@ -60,7 +61,7 @@ static unsigned framebuffer_generation;
 static void RenderItem(struct font *font, int index, int x, int y)
 {
     SDL_Rect dest = { x, y, font->w, font->h };
-    SDL_Rect clip = { 0, index * font->h, font->w, font->h };
+    SDL_Rect clip = { 0, index * font->h_pitch, font->w, font->h };
     SDL_BlitSurface(font->surf, &clip, screen, &dest);
 }
 
@@ -124,6 +125,7 @@ int mysetup(int argc, char **argv)
                 0 /* Amask */);
     nascom_font.w = FONT_W;
     nascom_font.h = FONT_H;
+    nascom_font.h_pitch = FONT_H_PITCH;
 
     if (!nascom_font.surf) {
         fprintf(stderr, "no font :-( \n");
