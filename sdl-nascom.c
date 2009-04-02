@@ -177,7 +177,7 @@ void load_nascom(const char *file)
         exit(1);
     }
 
-    if (vflag = 1)
+    if (vflag)
         printf("Loading %s", file);
 
     for (; !feof(f) ;) {
@@ -263,7 +263,7 @@ void mainloop(void)
                                 goto found;
                             }
                     i = -1;
-                    printf("%d?\n", event.key.keysym.sym);
+                    //printf("%d?\n", event.key.keysym.sym);
 found:;
                     //printf("\n");
                 } else {
@@ -291,8 +291,9 @@ found:;
                         break;
                     }
                     default:
-                        printf("%d? ", event.key.keysym.sym);
-                        printf(" keysym %s\n", SDL_GetKeyName(event.key.keysym.sym));
+                        //printf("%d? ", event.key.keysym.sym);
+                        //printf(" keysym %s\n", SDL_GetKeyName(event.key.keysym.sym));
+                        ;
                     }
                 }
 
@@ -304,10 +305,10 @@ found:;
                 }
                 break;
             case SDL_QUIT:
-                printf("Quit\n");
+                //printf("Quit\n");
                 return;
             default:
-                printf("Unknown event: %d\n", event.type);
+                //printf("Unknown event: %d\n", event.type);
                 break;
             }
         }
