@@ -78,7 +78,7 @@ extern BYTE *pagetable[MEMSIZE/4];
 extern volatile int stopsim;
 #endif
 
-extern FASTWORK simz80(FASTREG PC, int, void (*)());
+extern FASTWORK simz80(FASTREG PC, int, int (*)());
 
 #define FLAG_C	1
 #define FLAG_N	2

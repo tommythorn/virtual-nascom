@@ -1,13 +1,13 @@
 # Makefile for VirtualNascom
 
 # CC must be an ANSI-C compiler
-CC            =gcc
+CC            = gcc
 
 # full speed or debugging to taste
-#OPTIMIZE      =-O2
+#OPTIMIZE     = -O2
 OPTIMIZE      = -g
 WARN          = -Wmost -Werror
-CFLAGS        =	$(OPTIMIZE) $(WARN)
+CFLAGS        =	$(OPTIMIZE) $(WARN) $(shell sdl-config --cflags)
 
 VIRTUALNASCOM_OBJS = simz80.o nascom.o xvirtualnascom.o
 
@@ -17,11 +17,11 @@ LIBS	      =-lXpm -lXt -lX -lm
 CWARN	      = -ansi -pedantic -Wall -Wshadow \
 		-Wpointer-arith -Wnested-externs -Winline
 
-sdl-nascom: sdl-nascom.o simz80.o nascom.o
+sdl-test: sdl-test.o font.o simz80.o
 	$(CC) $(shell sdl-config --libs) $^ -o $@
 
-sdl-nascom.o: sdl-nascom.c
-	$(CC) $(CFLAGS) $(shell sdl-config --cflags) -c $< -o $@
+sdl-nascom: sdl-nascom.o simz80.o nascom.o font.o
+	$(CC) $(shell sdl-config --libs) $^ -o $@
 
 ascii-nascom: ascii-nascom.o simz80.o nascom.o
 	$(CC) $(CFLAGS) $^ -o $@

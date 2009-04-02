@@ -666,7 +666,7 @@ dfd_prefix(FASTREG IXY)
 }
 
 FASTWORK
-simz80(FASTREG PC, int count, void (*fnc)())
+simz80(FASTREG PC, int count, int (*fnc)())
 {
     FASTREG AF = af[af_sel];
     FASTREG BC = regs[regs_sel].bc;
@@ -683,7 +683,8 @@ simz80(FASTREG PC, int count, void (*fnc)())
 #endif
       if (fnc && --n == 0) {
 	n = count;
-	(*fnc)();
+	if ((*fnc)())
+            PC = 0;
       }
 
     switch(++PC,RAM(PC-1)) {
