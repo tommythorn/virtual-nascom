@@ -56,6 +56,9 @@ static struct font {
     int w, h, h_pitch;
 } nascom_font;
 
+FILE *serial_out, *serial_in;
+int tape_led;
+
 static unsigned framebuffer_generation;
 
 static void RenderItem(struct font *font, int index, int x, int y)
@@ -251,10 +254,13 @@ void mainloop(void)
                 break;
             case SDL_KEYDOWN:
             case SDL_KEYUP:
-                if (event.key.keysym.sym == 27 && event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == '\\' && event.type == SDL_KEYDOWN) {
                     reset = 1;
                     break;
                 }
+
+                if (event.key.keysym.sym == 27)
+                    exit(0);
 
                 if (event.key.keysym.sym < 128) {
                     int ch = toupper(event.key.keysym.sym);
@@ -360,6 +366,11 @@ int main(int argc, char **argv)
 {
     int c;
 
+    serial_out = fopen("serialout.txt", "w+");
+
+    if (!serial_out)
+        exit(3);
+
     if (mysetup(argc, argv))
         return 1;
 
@@ -371,8 +382,12 @@ int main(int argc, char **argv)
     for (c=0; c<MEMSIZE/4; ++c) pagetable[c]=ram+(c<<12);
 #endif
 
-    while ((c = getopt(argc, argv, "m:v")) != EOF)
+    while ((c = getopt(argc, argv, "i:m:v")) != EOF)
         switch (c) {
+        case 'i':
+            serial_in = fopen(optarg, "r");
+            printf("serial input %s -> %p\n", optarg, serial_in);
+            break;
         case 'm':
             monitor = optarg;
             break;
@@ -385,10 +400,11 @@ int main(int argc, char **argv)
 
     if (vflag)
         puts("VirtualNascom, a Nascom 2 emulator version " VERSION "\n"
-             "Copyright 2000 Tommy Thorn.  Based on\n"
+             "Copyright 2000,2009 Tommy Thorn.\n"
+             "Uses software from \n"
              "Yet Another Z80 Emulator version " YAZEVERSION
              ", Copyright 1995,1998 Frank D. Cringle.\n"
-             "NasEmu comes with ABSOLUTELY NO WARRANTY; for details\n"
+             "VirtualNascom comes with ABSOLUTELY NO WARRANTY; for details\n"
              "see the file \"COPYING\" in the distribution directory.\n");
 
     load_nascom(monitor);
@@ -407,6 +423,57 @@ int main(int argc, char **argv)
             pc,sp,ir,ix,iy,af[af_sel],regs[regs_sel].bc,regs[regs_sel].de,regs[regs_sel].hl,af[1-af_sel],regs[1-regs_sel].bc,regs[1-regs_sel].de,regs[1-regs_sel].hl);
 }
 
+/*
+ * 1.7 Input/output port addressing
+ *
+ *     Output Bit
+ * P0  7 Not available          7 Unused
+ *     6 Not used               6 Keyboard S6
+ *     5 Unused                 5 Keyboard S3
+ *     4 Tape drive LED         4 Keyboard S5
+ *     3 Single step            3 Keyboard S4
+ *     2 Unused                 2 Keyboard S0
+ *     1 Reset keyb'd count     1 Keyboard S2
+ *     0 Clock keyb'd count     0 Keyboard S1
+ */
+
+#define P0_OUT_TAPE_DRIVE_LED 16
+#define P0_OUT_SINGLE_STEP     8
+#define P0_OUT_KEYBOARD_RESET  2
+#define P0_OUT_KEYBOARD_CLOCK  1
+
+/*
+ * P1  0 - 7 Data to UART       0 - 7 Data from UART
+ *     (Serial port)            (Serial port)
+ *
+ * P2  0 - 7 Not assigned       7 Data received from UART
+ *                              6 UART TBR empty
+ *                              5 Not assigned
+ *                              4 Not assigned
+ *                              3 F error on UART
+ *                              2 P error on UART
+ *                              1 O error on UART
+ *                              0 Not assigned
+ */
+
+#define UART_DATA_READY 128
+#define UART_TBR_EMPTY   64
+#define UART_F_ERROR      8
+#define UART_P_ERROR      4
+#define UART_O_ERROR      2
+
+/*
+ * P3  Not assigned             Not assigned
+ *
+ * P4  PIO port A data input and output
+ *
+ * P5  PIO port B data input and output
+ *
+ * P6  PIO port A control
+ *
+ * P7  PIO port B control
+ */
+
 void out(unsigned int port, unsigned char value)
 {
     unsigned int down_trans;
@@ -419,11 +486,22 @@ void out(unsigned int port, unsigned char value)
         down_trans = port0 & ~value;
         port0 = value;
 
-        if ((1 & down_trans) && keyp < 9) keyp++;
-        if (2 & down_trans) keyp = 0;
+        if ((down_trans & P0_OUT_KEYBOARD_CLOCK) && keyp < 9)
+            keyp++;
+        if (down_trans & P0_OUT_KEYBOARD_RESET)
+            keyp = 0;
+
+        if (tape_led != !!(value & P0_OUT_TAPE_DRIVE_LED))
+            fprintf(stderr, "Tape LED = %d\n", !!(value & P0_OUT_TAPE_DRIVE_LED));
+        tape_led = !!(value & P0_OUT_TAPE_DRIVE_LED);
         break;
 
-    default: ;
+    case 1:
+        fputc(value, serial_out);
+        break;
+
+    default:
+        fprintf(stdout, "OUT [%02x] <- %02x\n", port, value);
     }
 }
 
@@ -436,10 +514,18 @@ int in(unsigned int port)
         /* KBD */
         /* printf("[%d]", keyp); */
         return ~keym[keyp];
+    case 1:
+        if (tape_led && serial_in && !feof(serial_in))
+            return fgetc(serial_in);
+        else
+            return 0;
     case 2:
         /* Status port on the UART */
-        return 0;
+        return UART_TBR_EMPTY |
+            (tape_led && serial_in && !feof(serial_in) ?
+             UART_DATA_READY : 0);
     default:
+        fprintf(stdout, "IN <- [%02x]\n", port);
         return 0;
     }
 }
