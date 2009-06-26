@@ -57,7 +57,8 @@ static struct font {
 } nascom_font;
 
 FILE *serial_out, *serial_in;
-int tape_led;
+int tape_led = 0;
+int serial_input_available = 0;
 
 static unsigned framebuffer_generation;
 
@@ -352,14 +353,14 @@ int sim_delay()
         return 1;
     }
 
-    SDL_Delay(2);
+    SDL_Delay(1);
 
     return 0;
 }
 
 void simulate(void *dummy)
 {
-    simz80(pc, 1000, sim_delay);
+    simz80(pc, 900, sim_delay);
 }
 
 int main(int argc, char **argv)
@@ -386,7 +387,8 @@ int main(int argc, char **argv)
         switch (c) {
         case 'i':
             serial_in = fopen(optarg, "r");
-            printf("serial input %s -> %p\n", optarg, serial_in);
+            //printf("serial input %s -> %p\n", optarg, serial_in);
+            serial_input_available = !feof(serial_in);
             break;
         case 'm':
             monitor = optarg;
@@ -491,8 +493,10 @@ void out(unsigned int port, unsigned char value)
         if (down_trans & P0_OUT_KEYBOARD_RESET)
             keyp = 0;
 
+#if 0
         if (tape_led != !!(value & P0_OUT_TAPE_DRIVE_LED))
             fprintf(stderr, "Tape LED = %d\n", !!(value & P0_OUT_TAPE_DRIVE_LED));
+#endif
         tape_led = !!(value & P0_OUT_TAPE_DRIVE_LED);
         break;
 
@@ -515,15 +519,17 @@ int in(unsigned int port)
         /* printf("[%d]", keyp); */
         return ~keym[keyp];
     case 1:
-        if (tape_led && serial_in && !feof(serial_in))
-            return fgetc(serial_in);
+        if (serial_input_available & tape_led) {
+            char ch = fgetc(serial_in);
+            serial_input_available = !feof(serial_in);
+            return ch;
+        }
         else
             return 0;
     case 2:
         /* Status port on the UART */
         return UART_TBR_EMPTY |
-            (tape_led && serial_in && !feof(serial_in) ?
-             UART_DATA_READY : 0);
+            (serial_input_available & tape_led ? UART_DATA_READY : 0);
     default:
         fprintf(stdout, "IN <- [%02x]\n", port);
         return 0;
