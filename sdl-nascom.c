@@ -1,4 +1,4 @@
-/*   VirtualNascom, a Nascom II emulator.
+/*   Virtual Nascom, a Nascom II emulator.
 
      Copyright (C) 2000,2009  Tommy Thorn
 
@@ -50,6 +50,8 @@
 #define FONT_H       15
 #define FONT_W        8
 
+extern uint8_t nascom_font_raw[];
+
 static SDL_Surface *screen;
 static struct font {
     SDL_Surface *surf;
@@ -62,10 +64,10 @@ int serial_input_available = 0;
 
 static unsigned framebuffer_generation;
 
-static void RenderItem(struct font *font, int index, int x, int y)
+static void RenderItem(struct font *font, int idx, int x, int y)
 {
-    SDL_Rect dest = { x, y, font->w, font->h };
-    SDL_Rect clip = { 0, index * font->h_pitch, font->w, font->h };
+    auto SDL_Rect dest = { x, y, font->w, font->h };
+    SDL_Rect clip = { 0, idx * font->h_pitch, font->w, font->h };
     SDL_BlitSurface(font->surf, &clip, screen, &dest);
 }
 
@@ -113,9 +115,6 @@ int mysetup(int argc, char **argv)
 #endif
 
     /* Load font */
-    extern uint8_t nascom_font_raw[];
-
-    // Unsuccessful :-(
     nascom_font.surf =
         SDL_CreateRGBSurfaceFrom(
                 nascom_font_raw,
@@ -132,7 +131,7 @@ int mysetup(int argc, char **argv)
     nascom_font.h_pitch = FONT_H_PITCH;
 
     if (!nascom_font.surf) {
-        fprintf(stderr, "no font :-( \n");
+        perror("Couldn't load the font\n");
         return 1;
     }
 
@@ -159,17 +158,6 @@ unsigned char keym[9] = {
 
 unsigned char keyp = 0;
 unsigned char port0;
-
-static void
-usage(void)
-{
-    fprintf(stderr,
-            "Usage: %s {flags} {commands}\n"
-            "           -m <file>       use <file> as monitor (default is nassys3.nal)\n"
-            "           -v              verbose\n"
-            ,progname);
-    exit (1);
-}
 
 void load_nascom(const char *file)
 {
@@ -268,13 +256,10 @@ void mainloop(void)
                     for (i = 0; i < 9; ++i)
                         for (bit = 0; bit < 8; ++bit)
                             if (kbd_translation[i][7-bit] == ch) {
-                                //printf(" -> %d/%d", i, bit);
                                 goto found;
                             }
                     i = -1;
-                    //printf("%d?\n", event.key.keysym.sym);
 found:;
-                    //printf("\n");
                 } else {
                     switch (event.key.keysym.sym) {
                     case SDLK_LCTRL:   i = 0, bit = 3; break;
@@ -363,6 +348,18 @@ void simulate(void *dummy)
     simz80(pc, 900, sim_delay);
 }
 
+static void
+usage(void)
+{
+    fprintf(stderr,
+            "Usage: %s {flags} {commands}\n"
+            "           -i <file>       take serial port input from file (when tape led is on)\n"
+            "           -m <file>       use <file> as monitor (default is nassys3.nal)\n"
+            "           -v              verbose\n"
+            ,progname);
+    exit (1);
+}
+
 int main(int argc, char **argv)
 {
     int c;
@@ -401,7 +398,7 @@ int main(int argc, char **argv)
         }
 
     if (vflag)
-        puts("VirtualNascom, a Nascom 2 emulator version " VERSION "\n"
+        puts("Virtual Nascom, a Nascom 2 emulator version " VERSION "\n"
              "Copyright 2000,2009 Tommy Thorn.\n"
              "Uses software from \n"
              "Yet Another Z80 Emulator version " YAZEVERSION
@@ -417,12 +414,8 @@ int main(int argc, char **argv)
 
     SDL_CreateThread((int (*)(void *))simulate, NULL);
     mainloop();
-    exit(0);
 
-    fprintf(stderr,"HALT\n");
-    fprintf(stderr,"PC   SP   IR   IX   IY   AF   BC   DE   HL   AF'  BC'  DE'  HL'\n");
-    fprintf(stderr,"%04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n",
-            pc,sp,ir,ix,iy,af[af_sel],regs[regs_sel].bc,regs[regs_sel].de,regs[regs_sel].hl,af[1-af_sel],regs[1-regs_sel].bc,regs[1-regs_sel].de,regs[1-regs_sel].hl);
+    exit(0);
 }
 
 /*
@@ -557,4 +550,3 @@ void slow_write(unsigned int a, unsigned char v)
     if (0x800 <= a && a <= 0xE000)
         RAM(a) = v;
 }
-

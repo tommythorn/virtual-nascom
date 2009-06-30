@@ -1,26 +1,32 @@
-VirtualNascom, a Nascom II emulator/simulator version 1.0
 
-This is a version 1.0.1, which although not finished is already very
+
+                            Virtual Nascom
+
+              A Nascom II emulator/simulator
+
+                             Version 2.0
+
+This is a version 2.0, which although not finished is already very
 useful (runs every program I've tried).
 
-A very crucial part of VirtualNascom is the excellent z80 emulator
+A very crucial part of Virtual Nascom is the excellent Z80 emulator
 from Yaze, which is also copylefted.
 
 
 INSTALLATION
 
-VirtualNascom should run under all resonable Unicies with X11 support.
+Virtual Nascom should compile on all platform with SDL support, but
+has only been tested on Mac OS X 10.5.7 and Open SUSE 11.1/AMD64.
+
 To compile you may have to adapt the Makefile with the libraries you
 need and their path.
-
-VirtualNascom has been tested under Solaris 2.6/SPARC and Redhat ?/ix86.
 
 
 USAGE
 
 I should improve the interface, but for now to run, use:
 
-  ./xvirtualnascom [-m monitor.nal] [-v] [app.nal]
+  ./virtualnascom [-m monitor.nal] [-v] [app.nal]
 
 VirtualNascom expects to find `nassys.nal' (unless you changed the
 monitor using the `-m' option) and `basic.nal' upon startup.  You can

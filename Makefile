@@ -1,21 +1,17 @@
 # Makefile for VirtualNascom
 
 # CC must be an ANSI-C compiler
-CC            = gcc
+CC=gcc
 
 # full speed or debugging to taste
-#OPTIMIZE     = -O2
-OPTIMIZE      = -g
-WARN          = -Wmost -Werror
-CFLAGS        =	$(OPTIMIZE) $(WARN) $(shell sdl-config --cflags)
-
-LIBS	      =-lXpm -lXt -lX -lm
-
-###### you should not need to change anything below this line ######
-CWARN	      = -ansi -pedantic -Wall -Wshadow \
-		-Wpointer-arith -Wnested-externs -Winline
+OPTIMIZE=-O2
+#OPTIMIZE=-g
+#WARN=-Wmost -Werror
+WARN=-Wall
+CFLAGS=$(OPTIMIZE) $(WARN) $(shell sdl-config --cflags)
 
 sdl-nascom: sdl-nascom.o font.o simz80.o
-	$(CC) $(shell sdl-config --libs) $^ -o $@
+	$(CC) $(CWARN) $(shell sdl-config --libs) $^ -o $@
 
-clean:;		rm -f *.o *~ core
+clean:
+	rm -f *.o *~ core
