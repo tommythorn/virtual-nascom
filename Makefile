@@ -10,7 +10,7 @@ OPTIMIZE=-O2
 WARN=-Wall
 CFLAGS=$(OPTIMIZE) $(WARN) $(shell sdl-config --cflags)
 
-sdl-nascom: sdl-nascom.o font.o simz80.o
+virtualnascom: virtualnascom.o font.o simz80.o
 	$(CC) $(CWARN) $(shell sdl-config --libs) $^ -o $@
 
 clean:
