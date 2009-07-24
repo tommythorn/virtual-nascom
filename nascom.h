@@ -1,6 +1,7 @@
 #define VERSION "2.0"
 #define YAZEVERSION "1.10"
 
+#include <stdbool.h>
 
 /* Z80 registers */
 
@@ -30,7 +31,7 @@ BYTE *pagetable[MEMSIZE/4];     /* MMU page table */
 
 char *monitor;
 char *progname;
-int  vflag;
+bool  verbose;
 unsigned char keym[9];
 
 int setup(int, char **);

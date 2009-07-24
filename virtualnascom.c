@@ -171,7 +171,7 @@ void load_nascom(const char *file)
         exit(1);
     }
 
-    if (vflag)
+    if (verbose)
         printf("Loading %s", file);
 
     for (; !feof(f) ;) {
@@ -197,7 +197,7 @@ void load_nascom(const char *file)
     }
 
     fclose(f);
-    if (vflag)
+    if (verbose)
         printf(". Successfully loaded %d bytes\n", count);
 
     if (count == 2048) {
@@ -281,7 +281,7 @@ found:;
                         f = fopen("screendump", "w");
                         fwrite((const void *) (ram+0x800), 1, 1024, f);
                         fclose(f);
-                        if (vflag) printf("Screen dumped\n");
+                        if (verbose) printf("Screen dumped\n");
                         break;
                     }
                     default:
@@ -391,13 +391,13 @@ int main(int argc, char **argv)
             monitor = optarg;
             break;
         case 'v':
-            vflag = 1;
+            verbose = 1;
             break;
         case '?':
             usage();
         }
 
-    if (vflag)
+    if (verbose)
         puts("Virtual Nascom, a Nascom 2 emulator version " VERSION "\n"
              "Copyright 2000,2009 Tommy Thorn.\n"
              "Uses software from \n"
@@ -498,7 +498,8 @@ void out(unsigned int port, unsigned char value)
         break;
 
     default:
-        fprintf(stdout, "OUT [%02x] <- %02x\n", port, value);
+        if (verbose)
+            fprintf(stdout, "OUT [%02x] <- %02x\n", port, value);
     }
 }
 
@@ -524,7 +525,8 @@ int in(unsigned int port)
         return UART_TBR_EMPTY |
             (serial_input_available & tape_led ? UART_DATA_READY : 0);
     default:
-        fprintf(stdout, "IN <- [%02x]\n", port);
+        if (verbose)
+            fprintf(stdout, "IN <- [%02x]\n", port);
         return 0;
     }
 }
