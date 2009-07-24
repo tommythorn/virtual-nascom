@@ -1,4 +1,24 @@
 TODO:
+- embed the monitor and basic images into the binary
+
+- rpm and pkg installations
+
+- update sdk to forgo warning on MacOS
+
+- UI:
+    allow for switching input and output file while running
+    support pixel doubling
+
+- snapshot and resume complete machine state
+
+      vnascom -s <state>
+
+    resumes the state in <state> and saves the new state upon exit
+    (unless explicitly aborted). The previous state is renamed to
+    <state>~ to keep a backup.
+
+    UI: take snapshot, reset, abort, revert
+
 - Precise timings
 
   A rough, but machine independent job should be easily done.
