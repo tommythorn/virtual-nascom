@@ -352,10 +352,10 @@ static void
 usage(void)
 {
     fprintf(stderr,
-            "Usage: %s {flags} {commands}\n"
-            "           -i <file>       take serial port input from file (when tape led is on)\n"
-            "           -m <file>       use <file> as monitor (default is nassys3.nal)\n"
-            "           -v              verbose\n"
+ "This is Virtual Nascom.  Usage: %s {flags} {commands}\n"
+ "           -i <file>       take serial port input from file (if tape led is on)\n"
+ "           -m <file>       use <file> as monitor (default is nassys3.nal)\n"
+ "           -v              be verbose\n"
             ,progname);
     exit (1);
 }
@@ -399,10 +399,10 @@ int main(int argc, char **argv)
 
     if (verbose)
         puts("Virtual Nascom, a Nascom 2 emulator version " VERSION "\n"
-             "Copyright 2000,2009 Tommy Thorn.\n"
+             "Copyright (C) 2000-2009 Tommy Thorn.\n"
              "Uses software from \n"
              "Yet Another Z80 Emulator version " YAZEVERSION
-             ", Copyright 1995,1998 Frank D. Cringle.\n"
+             ", Copyright (C) 1995,1998 Frank D. Cringle.\n"
              "VirtualNascom comes with ABSOLUTELY NO WARRANTY; for details\n"
              "see the file \"COPYING\" in the distribution directory.\n");
 

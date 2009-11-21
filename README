@@ -2,36 +2,120 @@
 
                             Virtual Nascom
 
-              A Nascom II emulator/simulator
+                    A Nascom II emulator/simulator
 
-                             Version 2.0
+                       Version 1.9, 2009-11-21
 
-This is a version 2.0, which although not finished is already very
-useful (runs every program I've tried).
+                            by Tommy Thorn
 
-A very crucial part of Virtual Nascom is the excellent Z80 emulator
-from Yaze, which is also copylefted.
+               homepage: http://www.nascomhomepage.com
+        git repository: http://repo.or.cz/w/virtual-nascom.git
+
+
+
+This is a version 1.9 of Virtual Nascom, yet another Nascom II
+emulator. There's emulation support for nearly all the standard
+hardware and it runs nearly all of the software on the
+nascomhomepage.com (see KNOWN ISSUES below).
+
+Version 1.9 switches from a (partially broken) X Window specific
+implementation to portable and more more robust SDL implementation. It
+also gained basic serial port support in the process.
 
 
 INSTALLATION
 
 Virtual Nascom should compile on all platform with SDL support, but
-has only been tested on Mac OS X 10.5.7 and Open SUSE 11.1/AMD64.
+has only been tested on Mac OS X 10.5.7, Mac OS X 10.6.2, and Open
+SUSE 11.1/AMD64.
 
 To compile you may have to adapt the Makefile with the libraries you
-need and their path.
+need and their path, but generally it should be enough to simply run
+
+  $ make
+
 
 
 USAGE
 
-I should improve the interface, but for now to run, use:
-
-  ./virtualnascom [-m monitor.nal] [-v] [app.nal]
+Usage: ./virtualnascom {flags} {commands}
+           -i <file>       take serial port input from file (when tape led is on)
+           -m <file>       use <file> as monitor (default is nassys3.nal)
+           -v              verbose
 
 VirtualNascom expects to find `nassys.nal' (unless you changed the
 monitor using the `-m' option) and `basic.nal' upon startup.  You can
 add files to be loaded by providing them as arguments at the end of
 the line.
 
-Tommy Thorn <thorn@daimi.au.dk>
-3rd of April 2000
+For example to run Pac Man, run
+
+  $ ./virtualnascom programs/e1000/pacman.nas
+
+and type E1000 in the Nascom II window. Control with arrow keys.
+
+
+CREDITS
+
+A very crucial part of Virtual Nascom is the excellent Z80 emulator
+from Yaze, Copyright (C) 1995,1998  Frank D. Cringle.
+
+
+TODO
+
+- embed the monitor and basic images into the binary
+
+- rpm and pkg installations
+
+- update sdk to forgo warning on MacOS
+
+- UI:
+    allow for switching input and output file while running
+    support pixel doubling
+
+- snapshot and resume complete machine state
+
+      vnascom -s <state>
+
+    resumes the state in <state> and saves the new state upon exit
+    (unless explicitly aborted). The previous state is renamed to
+    <state>~ to keep a backup.
+
+    UI: take snapshot, reset, abort, revert
+
+- Precise timings
+
+  A rough, but machine independent job should be easily done.
+
+- Complete the keyboard emulation
+
+  Currently we try hard to map keys to nascom keys.  This has some
+  problems as shift goes to shift, e.g. when you press Shift-2 to get
+  @, Nascom will actually get 'shift' '2' and make the '"'
+
+  Doing a more standard emulation will loose the possibility of
+  emulating shift keys.  Ideally, there should be an invokation flag
+  to chose between the two ways of doing it as it really depends on
+  the application.  Most won't need the shift event.
+
+- Use autoconfigure
+
+- Emulate sound
+
+  Requires precise timings.
+
+- Complete hardware emulation
+
+  Check other ports that require emulation
+
+- Internal structure
+
+  The current organisation is a bit of a quick hack, but it works
+  fairly well.
+
+- Screen: Are Nascom characters really 16 pixels high?
+
+KNOWN ISSUES
+
+- Galaxy Attack doesn't work on Virtual Nascom. As it does work on
+  Constantin's Nascom emulator it must be an emulation bug.

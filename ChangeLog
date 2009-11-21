@@ -1,3 +1,11 @@
+2009-11-21  Tommy Thorn  <nascomhomepage@thorn.ws>
+
+	* Released version 1.9.
+
+	* Minimal emulation of the serial port.
+
+	* Ported to SDL.
+
 2000-04-03  Tommy Thorn  <thorn@brics.dk>
 
 	* Released version 1.0.1
