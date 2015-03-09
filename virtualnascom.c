@@ -44,6 +44,7 @@
 #include <ctype.h>
 #include "simz80.h"
 #include "nascom.h"
+#include "ihex.h"
 #include <SDL.h>
 
 #define FONT_H_PITCH 16
@@ -172,7 +173,15 @@ void load_nascom(const char *file)
     }
 
     if (verbose)
-        printf("Loading %s", file);
+        printf("Loading %s\n", file);
+
+    ch = fgetc(f);
+    rewind(f);
+
+    if (ch == ':') {
+        load_ihex(file, &RAM(0));
+        return;
+    }
 
     for (; !feof(f) ;) {
         if (fscanf(f, "%x %x %x %x %x %x %x %x %x",
@@ -399,7 +408,7 @@ int main(int argc, char **argv)
 
     if (verbose)
         puts("Virtual Nascom, a Nascom 2 emulator version " VERSION "\n"
-             "Copyright (C) 2000-2009 Tommy Thorn.\n"
+             "Copyright (C) 2000-2015 Tommy Thorn.\n"
              "Uses software from \n"
              "Yet Another Z80 Emulator version " YAZEVERSION
              ", Copyright (C) 1995,1998 Frank D. Cringle.\n"
@@ -549,6 +558,6 @@ void slow_write(unsigned int a, unsigned char v)
         }
     }
 
-    if (0x800 <= a && a <= 0xE000)
+    if (0x800 <= a && a < 0xE000)
         RAM(a) = v;
 }
