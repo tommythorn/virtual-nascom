@@ -37,7 +37,7 @@ static bool read_hex(FILE *f, int n, int *v)
     return false;
 }
 
-static bool read_ihex_line(FILE *f, char *memory, unsigned *start_addr)
+static bool read_ihex_line(FILE *f, unsigned char *memory, unsigned *start_addr)
 {
     /*
      Expect lines like this:
@@ -86,7 +86,7 @@ static bool read_ihex_line(FILE *f, char *memory, unsigned *start_addr)
     return false;
 }
 
-void load_ihex(const char *file, char *memory)
+void load_ihex(const char *file, unsigned char *memory)
 {
     FILE *f = fopen(file, "r");
     unsigned start_addr = -1;
