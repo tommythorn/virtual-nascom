@@ -208,13 +208,6 @@ void load_nascom(const char *file)
     fclose(f);
     if (verbose)
         printf(". Successfully loaded %d bytes\n", count);
-
-    if (count == 2048) {
-        FILE *f;
-        f = fopen("blob", "w");
-        fwrite((const void *) ram, 1, 2048, f);
-        fclose(f);
-    }
 }
 
 static char * kbd_translation[] = {
@@ -233,8 +226,11 @@ int reset = 0;
 
 void mainloop(void)
 {
+    static uint8_t screencache[1024];
     int i = -1, bit = 0;
     unsigned last_generation = 0;
+
+    memset(screencache, ' ', sizeof screencache);
 
     for (;;) {
         SDL_Event event;
@@ -323,14 +319,20 @@ found:;
             unsigned p = 0x800 + 10;
             last_generation = framebuffer_generation;
 
-            for (y = 1; y < 16; ++y, p += 64) {
-                for (x = 0; x < 48; ++x)
-                    RenderItem(&nascom_font, RAM(p + x), x * FONT_W, y * FONT_H);
+            for (y = 1; y < 16; ++y, p += 16) {
+                for (x = 0; x < 48; ++x, ++p)
+                    if (screencache[p - 0x800] != RAM(p)) {
+                        RenderItem(&nascom_font, RAM(p), x * FONT_W, y * FONT_H);
+                        screencache[p - 0x800] = RAM(p);
+                    }
             }
 
             // Nascom is strange in that the last line is the first line!
-            for (x = 0; x < 48; ++x)
-                RenderItem(&nascom_font, RAM(p + x), x * FONT_W, 0);
+            for (x = 0; x < 48; ++x, ++p)
+                if (screencache[p - 0x800] != RAM(p)) {
+                    RenderItem(&nascom_font, RAM(p), x * FONT_W, 0);
+                    screencache[p - 0x800] = RAM(p);
+                }
 
             SDL_UpdateRect(screen, 0, 0, screen->w, screen->h);
             // SDL_Flip(screen); either seem to work
@@ -361,7 +363,7 @@ static void
 usage(void)
 {
     fprintf(stderr,
- "This is Virtual Nascom.  Usage: %s {flags} {commands}\n"
+ "This is Virtual Nascom.  Usage: %s {flags} files\n"
  "           -i <file>       take serial port input from file (if tape led is on)\n"
  "           -m <file>       use <file> as monitor (default is nassys3.nal)\n"
  "           -v              be verbose\n"
