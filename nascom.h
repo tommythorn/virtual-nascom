@@ -20,7 +20,7 @@ WORD IFF;
 
 #define INSCREEN(x) (((x) >> 10) == 2)
 
-BYTE ram[MEMSIZE*1024];         /* Z80 memory space */
+BYTE ram[MEMSIZE*1024+1];       /* Z80 memory space */
 #ifdef MMU
 BYTE *pagetable[MEMSIZE/4];     /* MMU page table */
 #endif

@@ -18,15 +18,16 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. */
 
 #include <limits.h>
+#include <stdint.h>
 
 #if UCHAR_MAX == 255
-typedef unsigned char	BYTE;
+typedef uint8_t BYTE;
 #else
 #error Need to find an 8-bit type for BYTE
 #endif
 
 #if USHRT_MAX == 65535
-typedef unsigned short	WORD;
+typedef uint16_t WORD;
 #else
 #error Need to find an 16-bit type for WORD
 #endif
@@ -69,7 +70,7 @@ extern WORD IFF;
 #ifndef MEMSIZE
 #define MEMSIZE 64
 #endif
-extern BYTE ram[MEMSIZE*1024];
+extern BYTE ram[MEMSIZE*1024+1];  // The +1 location is for the wraparound GetWord
 #ifdef MMU
 extern BYTE *pagetable[MEMSIZE/4];
 #endif
@@ -103,30 +104,40 @@ extern FASTWORK simz80(FASTREG PC, int, int (*)());
 #else
 #define RAM(a)		ram[(a)&0xffff]
 #endif
-#define GetBYTE(a)	RAM(a)
 
-/* Fast write inside [3K; 64K-8K] 
+static inline unsigned char
+GetBYTE(uint16_t a)
+{
+    return ram[a];
+}
+
+/* Fast write inside [3K; 64K-8K]
 
    NOTICE: This is dependent on the assumption that the 8KB Basic ROM
    is present
 */
 
 void slow_write(unsigned int a, unsigned char v);
-#define PutBYTE(a,v) \
-   do { \
-     if (((a + 8192) & 0xFFFF) > 11*1024) \
-       RAM(a) = v; \
-     else \
-       slow_write(a,v); \
-   } while (0)
+static inline void
+PutBYTE(uint16_t a, uint16_t v)
+{
+    if (0x800 <= a && a < 0xE000)
+        ram[a] = v;
+}
 
 /*#define PutBYTE(a, v)	RAM(a) = v*/
 
-#define GetWORD(a)	(RAM(a) | (RAM((a)+1) << 8))
-#define PutWORD(a, v)							\
-    do { PutBYTE(a, ((int)(v)&255));					\
-	 PutBYTE((a)+1, (v) >> 8);					\
-     } while (0)
+// Note, works even because we maintain ram[0] === ram[0x10000]
+static inline uint16_t GetWORD(uint16_t a)
+{
+    return *(uint16_t *)&ram[a];
+}
+
+static inline void PutWORD(unsigned a, uint16_t v)
+{
+    if (0x800 <= a && a < 0xE000 - 1)
+        *(uint16_t *)&RAM(a) = v;
+}
 
 #ifndef BIOS
 extern int in(unsigned int);
