@@ -125,7 +125,7 @@ static char * kbd_translation[] = {
 
 #define ___ " " // Dummy
 static const char
-kbd_us_shift[] = ";:'\"[{]}\\|-_=+`~1!2@3#4$5%6^7&8*9(0),<.>/?";
+kbd_us_shift[] = ";:'\"[{]}\\|-_=+`~1!2@3#4$5%6^7&8*9(0),<../?";
 static const char
 kbd_spec          [] = ";" ":" "["    "]" "-" "," "." "/"    "0" "1" "2"  "3" "4" "5" "6" "7" "8" "9" " ";
 static const char
@@ -195,6 +195,7 @@ static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
     static bool ui_shift = false;
     static bool ui_ctrl  = false;
     static bool ui_graph = false;
+    static bool ui_fn    = false;
     bool emu_shift = false;
     bool emu_ctrl  = false;
     bool emu_graph = false;
@@ -202,7 +203,36 @@ static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
 
     /* We are getting raw key code events, so first we need to handle the UI a bit */
 
-    switch (keysym.sym) {
+    //    printf("%c%x ", "UD"[keydown], ch);
+
+    const char fn_keys[] =
+      "Y{U}I[O]P|H<J>K'L\"B`N~M:.;/\\";
+
+    if (ch == 0x10D) {
+      ch = '-';
+    }
+
+    if (ui_fn) {
+      for (int i = 0; fn_keys[i]; i += 2)
+        if (fn_keys[i] == ch) {
+          ch = fn_keys[i+1];
+          break;
+        }
+      if ('1' <= ch && ch <= '9')
+        ch = ch - '1' + SDLK_F1;
+      else if (ch == '0')
+        ch = SDLK_F10;
+      else if (ch == '-')
+        ch = SDLK_F11;
+      else if (ch == '=')
+        ch = SDLK_F12;
+    }
+
+    switch (ch) {
+    case 313:
+      ui_fn = keydown;
+      break;
+
     case SDLK_LSHIFT:
     case SDLK_RSHIFT:
         ui_shift = keydown;
@@ -221,17 +251,23 @@ static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
         break;
     }
 
-    emu_shift = !ui_shift && isalpha(keysym.sym);
+    if (!keydown)
+        memset(keyboard.mask, 0, sizeof keyboard.mask);
+
+    emu_shift = !ui_shift && isalpha(ch);
     emu_ctrl  = ui_ctrl;
     emu_graph = ui_graph;
 
     if (ui_shift)
-        for (int i = 0; kbd_us_shift[i]; i += 2) {
+        if (ch == '.')
+            ch = ',';
+        else
+          for (int i = 0; kbd_us_shift[i]; i += 2) {
             if (kbd_us_shift[i] == ch) {
-                ch = kbd_us_shift[i+1];
-                break;
+              ch = kbd_us_shift[i+1];
+              break;
             }
-        }
+          }
 
     /* Now translate the ASCII to Nascom keyboard events */
 
@@ -299,7 +335,7 @@ static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
         }
 
     search:
-    if (keysym.sym < 128) {
+    if (ch < 128) {
         for (i = 1; i < 9; ++i)
             for (bit = 0; bit < 7; ++bit)
                 if (kbd_translation[i][7-bit] == ch) {
@@ -310,12 +346,13 @@ static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
     } else {
         emu_shift = ui_shift;
 
-        switch (keysym.sym) {
+        switch (ch) {
         case SDLK_UP:      i = 1, bit = 6; break;
         case SDLK_LEFT:    i = 2, bit = 6; break;
         case SDLK_DOWN:    i = 3, bit = 6; break;
         case SDLK_RIGHT:   i = 4, bit = 6; break;
         default:
+            keysym.sym = ch;
             handle_app_control(keysym, keydown);
         }
     }
