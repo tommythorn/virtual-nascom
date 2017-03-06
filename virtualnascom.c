@@ -220,7 +220,7 @@ static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
         break;
     }
 
-    emu_shift = !ui_shift & isalpha(keysym.sym);
+    emu_shift = !ui_shift && isalpha(keysym.sym);
     emu_ctrl  = ui_ctrl;
     emu_graph = ui_graph;
 
@@ -561,6 +561,8 @@ int main(int argc, char **argv)
         switch (c) {
         case 'i':
             serial_in = fopen(optarg, "r");
+            if (!serial_in)
+                perror(optarg), exit(1);
             //printf("serial input %s -> %p\n", optarg, serial_in);
             serial_input_available = !feof(serial_in);
             break;
