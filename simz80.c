@@ -681,10 +681,13 @@ simz80(FASTREG PC, int count, int (*fnc)())
 #else
     while (1) {
 #endif
-      if (fnc && --n == 0) {
-	n = count;
-	if ((*fnc)())
-            PC = 0;
+      if (--n == 0) {
+	  n = count;
+	  int r = (*fnc)();
+	  if (r == -1)
+	      break;
+	  else if (r != 0)
+              PC = 0;
       }
 
     switch(++PC,RAM(PC-1)) {

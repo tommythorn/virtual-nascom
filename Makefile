@@ -1,13 +1,13 @@
 # Makefile for VirtualNascom
 
-# CC must be an ANSI-C compiler
-CC=gcc
+# CC must be an C99 compiler
+CC=gcc -std=c99
 
 # full speed or debugging to taste
 OPTIMIZE=-O2
 #OPTIMIZE=-g
 #WARN=-Wmost -Werror
-WARN=-Wall
+WARN=-Wall -Wno-parentheses
 CFLAGS=$(OPTIMIZE) $(WARN) $(shell sdl-config --cflags)
 
 virtualnascom: virtualnascom.o font.o simz80.o ihex.o

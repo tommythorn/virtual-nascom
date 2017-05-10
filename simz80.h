@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. */
 
 #include <limits.h>
 #include <stdint.h>
+#include <string.h>
 
 #if UCHAR_MAX == 255
 typedef uint8_t BYTE;
@@ -127,16 +128,19 @@ PutBYTE(uint16_t a, uint16_t v)
 
 /*#define PutBYTE(a, v)	RAM(a) = v*/
 
-// Note, works even because we maintain ram[0] === ram[0x10000]
+// Note, works even for 0xFFFF because we maintain ram[0] === ram[0x10000]
+// Note: http://blog.regehr.org/archives/959
 static inline uint16_t GetWORD(uint16_t a)
 {
-    return *(uint16_t *)&ram[a];
+    uint16_t res;
+    memcpy(&res, ram+a, 2);
+    return res;
 }
 
 static inline void PutWORD(unsigned a, uint16_t v)
 {
     if (0x800 <= a && a < 0xE000 - 1)
-        *(uint16_t *)&RAM(a) = v;
+        memcpy(ram+a, &v, 2);
 }
 
 #ifndef BIOS

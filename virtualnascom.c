@@ -1,6 +1,6 @@
 /*   Virtual Nascom, a Nascom II emulator.
 
-     Copyright (C) 2000,2009  Tommy Thorn
+     Copyright (C) 2000,2009,2017  Tommy Thorn
 
      Z80 emulator portition Copyright (C) 1995,1998 Frank D. Cringle.
 
@@ -48,13 +48,28 @@
 #include <SDL.h>
 
 
+#define SLOW_DELAY  25000
+#define FAST_DELAY 900000
+
 static bool go_fast = false;
-static int t_sim_delay = 900;
+static int t_sim_delay = SLOW_DELAY;
 
 
 #define FONT_H_PITCH 16
 #define FONT_H       15
 #define FONT_W        8
+
+#ifdef POCKET_CHIP
+#define DISPLAY_X_OFFSET 48
+#define DISPLAY_Y_OFFSET 16
+#define DISPLAY_WIDTH   480
+#define DISPLAY_HEIGHT  272
+#else
+#define DISPLAY_WIDTH   480
+#define DISPLAY_HEIGHT  240
+#define DISPLAY_X_OFFSET 0
+#define DISPLAY_Y_OFFSET 0
+#endif
 
 extern uint8_t nascom_font_raw[];
 
@@ -70,7 +85,8 @@ static int serial_input_available = 0;
 
 static void RenderItem(struct font *font, int idx, int x, int y)
 {
-    auto SDL_Rect dest = { x, y, font->w, font->h };
+    auto SDL_Rect dest = { DISPLAY_X_OFFSET + x, DISPLAY_Y_OFFSET + y,
+                           font->w, font->h };
     SDL_Rect clip = { 0, idx * font->h_pitch, font->w, font->h };
     SDL_BlitSurface(font->surf, &clip, screen, &dest);
 }
@@ -94,23 +110,6 @@ static struct {
         0   /* Ch @  Sh Ct -  Nl Bs */
     },
     0};
-
-/*
- * To avoid race conditions and behaving in a manner that couldn't
- * happen realistically, we allow only a single bit transition per
- * scan.  Thus we queue up all the transactions and apply one per full
- * keyboard scan.
- */
-
-#define MAX_KEYBOARD_EVENTS 16
-
-static struct {
-    struct {
-        unsigned char *addr, value;
-    } e[MAX_KEYBOARD_EVENTS], *rp, *wp;
-} keyboard_events;
-
-unsigned char ui_mask[9];
 
 static char * kbd_translation[] = {
 /* 0 */  "________",
@@ -136,7 +135,8 @@ kbd_spec_w_ctrl   [] = "{" ___ "\033" ___ ___ ___ ___ ___    ___ ___ ___  ___ __
 static const char
 kbd_spec_w_shctrl [] = ___ ___ ___    ___ "}" "|" "~" "\177" ___ ___ ___  ___ ___ ___ ___ ___ ___ ___ ___;
 
-static int reset = 0;
+typedef enum { CONT = 0, RESET = 1, DONE = -1 } sim_action_t;
+static sim_action_t action = CONT;
 
 // Ctr-Shift-Meta 0 -> the REAL # (instead of the pound symbol)
 // Ctrl-Space -> `
@@ -160,17 +160,18 @@ static void handle_app_control(SDL_keysym keysym, bool keydown)
         }
 
         case SDLK_F4:
-            exit(0);
+            action = DONE;
+            break;
 
         case SDLK_F5:
             go_fast = !go_fast;
             printf("Switch to %s\n", go_fast ? "fast" : "slow");
 
-            t_sim_delay = go_fast ? 900000 : 900;
+            t_sim_delay = go_fast ? FAST_DELAY : SLOW_DELAY;
             break;
 
         case SDLK_F9:
-            reset = 1;
+            action = RESET;
             break;
 
         case SDLK_F10:
@@ -321,25 +322,25 @@ static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
 
 translate:
     if (emu_shift)
-        ui_mask[0] |= 1 << 4;
+        keyboard.mask[0] |= 1 << 4;
     else
-        ui_mask[0] &= ~(1 << 4);
+        keyboard.mask[0] &= ~(1 << 4);
 
     if (emu_ctrl)
-        ui_mask[0] |= 1 << 3;
+        keyboard.mask[0] |= 1 << 3;
     else
-        ui_mask[0] &= ~(1 << 3);
+        keyboard.mask[0] &= ~(1 << 3);
 
     if (emu_graph)
-        ui_mask[5] |= 1 << 6;
+        keyboard.mask[5] |= 1 << 6;
     else
-        ui_mask[5] &= ~(1 << 6);
+        keyboard.mask[5] &= ~(1 << 6);
 
     if (i != -1) {
         if (keydown)
-            ui_mask[i] |= 1 << bit;
+            keyboard.mask[i] |= 1 << bit;
         else
-            ui_mask[i] &= ~(1 << bit);
+            keyboard.mask[i] &= ~(1 << bit);
     }
 }
 
@@ -389,9 +390,9 @@ static void handle_key_event_raw(SDL_keysym keysym, bool keydown)
 
     if (i != -1) {
         if (keydown)
-            ui_mask[i] |= 1 << bit;
+            keyboard.mask[i] |= 1 << bit;
         else
-            ui_mask[i] &= ~(1 << bit);
+            keyboard.mask[i] &= ~(1 << bit);
     }
 }
 
@@ -445,82 +446,84 @@ static void load_nascom(const char *file)
         printf(". Successfully loaded %d bytes\n", count);
 }
 
-static void uiloop(void)
+static void save_nascom(int start, int end, const char *name)
 {
-    static uint8_t screencache[1024];
+    FILE *f = fopen(name, "w+");
 
-    memset(screencache, ' ', sizeof screencache);
+    if (!f) {
+        perror(name);
+        return;
+    }
 
-    for (;;) {
-        SDL_Event event;
+    for (uint8_t *p = ram + start; start < end; p += 8, start += 8)
+        fprintf(f, "%04X %02X %02X %02X %02X %02X %02X %02X %02X %02X%c%c\r\n",
+                start, *p, p[1], p[2], p[3], p[4], p[5], p[6], p[7], 0, 8, 8);
 
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-            case SDL_MOUSEMOTION:
-                /*printf("Mouse moved by %d,%d to (%d,%d)\n",
-                  event.motion.xrel, event.motion.yrel,
-                  event.motion.x, event.motion.y);*/
-                break;
-            case SDL_MOUSEBUTTONDOWN:
-                /*printf("Mouse button %d pressed at (%d,%d)\n",
-                  event.button.button, event.button.x, event.button.y);*/
-                break;
-            case SDL_KEYDOWN:
-            case SDL_KEYUP:
-                handle_key_event(event.key.keysym, event.type == SDL_KEYDOWN);
-                break;
-            case SDL_QUIT:
-                //printf("Quit\n");
-                return;
-            default:
-                //printf("Unknown event: %d\n", event.type);
-                break;
-            }
+    fclose(f);
+}
+
+static void ui_serve_input(void)
+{
+    SDL_Event event;
+
+    if (SDL_PollEvent(&event)) {
+        switch (event.type) {
+        case SDL_MOUSEMOTION:
+            /*printf("Mouse moved by %d,%d to (%d,%d)\n",
+              event.motion.xrel, event.motion.yrel,
+              event.motion.x, event.motion.y);*/
+            break;
+        case SDL_MOUSEBUTTONDOWN:
+            /*printf("Mouse button %d pressed at (%d,%d)\n",
+              event.button.button, event.button.x, event.button.y);*/
+            break;
+        case SDL_KEYDOWN:
+        case SDL_KEYUP:
+            handle_key_event(event.key.keysym, event.type == SDL_KEYDOWN);
+            break;
+        case SDL_QUIT:
+            //printf("Quit\n");
+            return;
+        default:
+            //printf("Unknown event: %d\n", event.type);
+            break;
         }
-
-        bool dirty = false;
-
-        for (uint8_t *p0 = ram + 0x80A, *q0 = screencache + 0xA;
-             p0 < ram + 0xC00; p0 += 64, q0 += 64)
-            for (unsigned char *p = p0, *q = q0; p < p0 + 48; ++p, ++q)
-                if (*q != *p) {
-                    *q = *p;
-                    unsigned index = p - ram - 0x800;
-                    unsigned x     = index % 64 - 10;
-                    unsigned y     = index / 64;
-                    y = (y + 1) % 16; // The last line is the first line
-
-                    RenderItem(&nascom_font, *p, x * FONT_W, y * FONT_H);
-                    dirty = true;
-                }
-
-        if (dirty)
-            // SDL_UpdateRect(screen, 0, 0, screen->w, screen->h);
-            SDL_Flip(screen); // either seem to work
-
-        if (go_fast)
-            SDL_Delay(1000 / 30); // 30 fps
-        else
-            SDL_Delay(1000 / 10); // 10 fps
     }
 }
 
-static int sim_delay()
+
+static void ui_display_refresh(void)
 {
-    if (reset) {
-        reset = 0;
-        return 1;
-    }
+    static uint8_t screencache[1024] = { 0 };
+    bool dirty = false;
+
+    for (uint8_t *p0 = ram + 0x80A, *q0 = screencache + 0xA;
+         p0 < ram + 0xC00; p0 += 64, q0 += 64)
+        for (unsigned char *p = p0, *q = q0; p < p0 + 48; ++p, ++q)
+            if (*q != *p) {
+                *q = *p;
+                unsigned index = p - ram - 0x800;
+                unsigned x     = index % 64 - 10;
+                unsigned y     = index / 64;
+                y = (y + 1) % 16; // The last line is the first line
+
+                RenderItem(&nascom_font, *p, x * FONT_W, y * FONT_H);
+                dirty = true;
+            }
+
+    if (dirty)
+        // SDL_UpdateRect(screen, 0, 0, screen->w, screen->h);
+        SDL_Flip(screen); // either seem to work
+}
+
+static int sim_delay(void)
+{
+    ui_display_refresh();
 
     if (!go_fast)
-        SDL_Delay(1);
+        SDL_Delay(50);
 
-    return 0;
-}
-
-static void simulate(void *dummy)
-{
-    simz80(pc, t_sim_delay, sim_delay);
+    return action;
 }
 
 static void
@@ -593,8 +596,9 @@ int main(int argc, char **argv)
 
     ram[0x10000] = ram[0]; // Make GetWord[0xFFFF) work correctly
 
-    SDL_CreateThread((int (*)(void *))simulate, NULL);
-    uiloop();
+    simz80(pc, t_sim_delay, sim_delay);
+
+    save_nascom(0x800, 0x10000, "memorydump.nas");
 
     exit(0);
 }
@@ -667,21 +671,8 @@ void out(unsigned int port, unsigned char value)
         if ((down_trans & P0_OUT_KEYBOARD_CLOCK) && keyboard.index < 9)
             keyboard.index++;
         if (down_trans & P0_OUT_KEYBOARD_RESET) {
+            ui_serve_input();
             keyboard.index = 0;
-
-            memcpy(keyboard.mask, ui_mask, sizeof ui_mask); // XXX still not enough to avoid races
-
-            /* Issue one change from the queue */
-            if (keyboard_events.rp != keyboard_events.wp) {
-                *keyboard_events.rp->addr = keyboard_events.rp->value;
-                ++keyboard_events.rp;
-                if (keyboard_events.rp == keyboard_events.e + MAX_KEYBOARD_EVENTS)
-                    keyboard_events.rp = keyboard_events.e;
-            }
-
-            // Since we simulate Z-80 at max speed, we need to slow down here for keyboard
-            // input to be even possible
-            SDL_Delay(go_fast ? 0 : 2);
         }
 #if 0
         if (tape_led != !!(value & P0_OUT_TAPE_DRIVE_LED))
@@ -735,12 +726,9 @@ static int mysetup(int argc, char **argv)
         return 1;
     }
 
-    keyboard_events.rp = keyboard_events.wp = keyboard_events.e;
-
     atexit(SDL_Quit);
 
-
-    screen = SDL_SetVideoMode(48 * FONT_W, 16 * FONT_H, 8, SDL_SWSURFACE);
+    screen = SDL_SetVideoMode(DISPLAY_WIDTH, DISPLAY_HEIGHT, 8, SDL_SWSURFACE);
     if (screen == NULL) {
         fprintf(stderr, "Unable to set video: %s\n", SDL_GetError());
         return 1;
