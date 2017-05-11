@@ -1,4 +1,4 @@
-# Makefile for VirtualNascom
+# Makefile for Virtual Nascom
 
 # CC must be an C99 compiler
 CC=gcc -std=c99
@@ -10,7 +10,7 @@ OPTIMIZE=-O2
 WARN=-Wall -Wno-parentheses
 CFLAGS=$(OPTIMIZE) $(WARN) $(shell sdl-config --cflags)
 
-virtualnascom: virtualnascom.o font.o simz80.o ihex.o
+virtual-nascom: virtual-nascom.o font.o simz80.o ihex.o
 	$(CC) $(CWARN) $(shell sdl-config --libs) $^ -o $@
 
 clean:

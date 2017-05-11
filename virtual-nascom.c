@@ -200,23 +200,27 @@ static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
     bool emu_graph = false;
     int ch = toupper(keysym.sym);
 
-    /* We are getting raw key code events, so first we need to handle the UI a bit */
+    /* We are getting raw key code events, so first we need to handle
+     * the UI a bit */
 
     switch (keysym.sym) {
     case SDLK_LSHIFT:
     case SDLK_RSHIFT:
         ui_shift = keydown;
         return;
+
     case SDLK_LCTRL:
     case SDLK_RCTRL:
         ui_ctrl = keydown;
         return;
+
     case SDLK_RMETA:
     case SDLK_LMETA:
     case SDLK_RALT:
     case SDLK_LALT:
         ui_graph = keydown;
         return;
+
     default:
         break;
     }
@@ -579,13 +583,14 @@ int main(int argc, char **argv)
             usage();
         }
 
+    puts("Virtual Nascom, a Nascom 2 emulator version " VERSION "\n"
+         "Copyright (C) 2000,2009,2017  Tommy Thorn.\n"
+         "http://github.com/tommythorn/virtual-nascom.git\n");
+
     if (verbose)
-        puts("Virtual Nascom, a Nascom 2 emulator version " VERSION "\n"
-             "Copyright (C) 2000-2017 Tommy Thorn.\n"
-             "Uses software from \n"
-             "Yet Another Z80 Emulator version " YAZEVERSION
+        puts("Uses software from Yet Another Z80 Emulator version "YAZEVERSION
              ", Copyright (C) 1995,1998 Frank D. Cringle.\n"
-             "VirtualNascom comes with ABSOLUTELY NO WARRANTY; for details\n"
+             "Virtual Nascom comes with ABSOLUTELY NO WARRANTY; for details\n"
              "see the file \"COPYING\" in the distribution directory.\n");
 
     load_nascom(monitor);
@@ -735,7 +740,7 @@ static int mysetup(int argc, char **argv)
     }
 
     /* Set the window caption */
-    SDL_WM_SetCaption("Nascom II", "Nascom II");
+    SDL_WM_SetCaption("Nascom 2", "Nascom 2");
 
 #if 0
     /* Populate the palette */

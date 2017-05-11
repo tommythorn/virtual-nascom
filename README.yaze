@@ -52,7 +52,7 @@ years ago.
 
 It was prompted by Michael Haardt's work on emulation of non-CP/M
 Z80-Systems.  He contributed the io.c file and the bank switching
-memory logic, which may provide a platform for running MP/M and UZI on 
+memory logic, which may provide a platform for running MP/M and UZI on
 the emulator.
 
 Frank Cringle, January 1998
