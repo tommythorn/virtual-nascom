@@ -144,7 +144,7 @@ static sim_action_t action = CONT;
 static void handle_key_event_dwim(SDL_keysym keysym, bool keydown);
 static void handle_key_event_raw(SDL_keysym keysym, bool keydown);
 
-static void (*handle_key_event)(SDL_keysym, bool) = handle_key_event_dwim;
+static void (*handle_key_event)(SDL_keysym, bool) = handle_key_event_raw;
 
 static void handle_app_control(SDL_keysym keysym, bool keydown)
 {
@@ -585,13 +585,25 @@ int main(int argc, char **argv)
 
     puts("Virtual Nascom, a Nascom 2 emulator version " VERSION "\n"
          "Copyright (C) 2000,2009,2017  Tommy Thorn.\n"
-         "http://github.com/tommythorn/virtual-nascom.git\n");
-
-    if (verbose)
-        puts("Uses software from Yet Another Z80 Emulator version "YAZEVERSION
-             ", Copyright (C) 1995,1998 Frank D. Cringle.\n"
-             "Virtual Nascom comes with ABSOLUTELY NO WARRANTY; for details\n"
-             "see the file \"COPYING\" in the distribution directory.\n");
+         "http://github.com/tommythorn/virtual-nascom.git\n"
+         "Uses software from Yet Another Z80 Emulator version "YAZEVERSION
+         ", Copyright (C) 1995,1998 Frank D. Cringle.\n"
+         "Virtual Nascom comes with ABSOLUTELY NO WARRANTY; for details\n"
+         "see the file \"COPYING\" in the distribution directory.\n"
+         "\n"
+         "The emulator dumps the memory state in `memorydump.nas`\n"
+         "upon exit so one might resume execution later on.\n"
+         "\n"
+         "The following keys are supported:\n"
+         "\n"
+         "* END - leaves a screendump in `screendump`\n"
+         "* F4 - exits the emulator\n"
+         "* F5 - toggles between stupidly fast and \"normal\" speed\n"
+         "* F9 - resets the emulated Nascom\n"
+         "* F10 - toggles between \"raw\" and \"natural\" keyboard emulation\n"
+         "\n"
+         "All serial output is appended to `serialout.txt` which may be fed back\n"
+         "in on a subsequent launch via the `-i` option.\n");
 
     load_nascom(monitor);
     load_nascom("basic.nal");
