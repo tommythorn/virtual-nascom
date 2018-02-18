@@ -1,6 +1,6 @@
 /*   Virtual Nascom, a Nascom II emulator.
 
-     Copyright (C) 2000,2009,2017  Tommy Thorn
+     Copyright (C) 2000,2009,2017,2018  Tommy Thorn
 
      Z80 emulator portition Copyright (C) 1995,1998 Frank D. Cringle.
 
@@ -81,6 +81,7 @@ static struct font {
 
 static FILE *serial_out, *serial_in;
 static int tape_led = 0;
+static int tape_led_force = 0;
 static int serial_input_available = 0;
 
 static void RenderItem(struct font *font, int idx, int x, int y)
@@ -168,6 +169,10 @@ static void handle_app_control(SDL_keysym keysym, bool keydown)
             printf("Switch to %s\n", go_fast ? "fast" : "slow");
 
             t_sim_delay = go_fast ? FAST_DELAY : SLOW_DELAY;
+            break;
+
+        case SDLK_F6:
+            tape_led = tape_led_force ^= 1;
             break;
 
         case SDLK_F9:
@@ -584,7 +589,7 @@ int main(int argc, char **argv)
         }
 
     puts("Virtual Nascom, a Nascom 2 emulator version " VERSION "\n"
-         "Copyright (C) 2000,2009,2017  Tommy Thorn.\n"
+         "Copyright (C) 2000,2009,2017,2018  Tommy Thorn.\n"
          "http://github.com/tommythorn/virtual-nascom.git\n"
          "Uses software from Yet Another Z80 Emulator version "YAZEVERSION
          ", Copyright (C) 1995,1998 Frank D. Cringle.\n"
@@ -599,6 +604,7 @@ int main(int argc, char **argv)
          "* END - leaves a screendump in `screendump`\n"
          "* F4 - exits the emulator\n"
          "* F5 - toggles between stupidly fast and \"normal\" speed\n"
+         "* F6 - force serial input on\n"
          "* F9 - resets the emulated Nascom\n"
          "* F10 - toggles between \"raw\" and \"natural\" keyboard emulation\n"
          "\n"
@@ -695,7 +701,7 @@ void out(unsigned int port, unsigned char value)
         if (tape_led != !!(value & P0_OUT_TAPE_DRIVE_LED))
             fprintf(stderr, "Tape LED = %d\n", !!(value & P0_OUT_TAPE_DRIVE_LED));
 #endif
-        tape_led = !!(value & P0_OUT_TAPE_DRIVE_LED);
+        tape_led = !!(value & P0_OUT_TAPE_DRIVE_LED) | tape_led_force;
         break;
 
     case 1:
