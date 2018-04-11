@@ -1,7 +1,7 @@
-Virtual Nascom, Version 1.10, 2017-05-10
+Virtual Nascom, Version 2.0, 2018-04-11
 ========================================
 
-This is a version 1.10 of Virtual Nascom, yet another Nascom 2
+This is a version 2.0 of Virtual Nascom, yet another Nascom 2
 emulator.  There's emulation support for all(?) of the standard
 hardware and it runs nearly all of the software on the
 nascomhomepage.com (see KNOWN ISSUES below).
@@ -57,6 +57,7 @@ The following keys are supported:
 * END - leaves a screendump in `screendump`
 * F4 - exits the emulator
 * F5 - toggles between stupidly fast and "normal" speed
+* F6 - force serial input on
 * F9 - resets the emulated Nascom
 * F10 - toggles between "raw" and "natural" keyboard emulation
 
@@ -66,7 +67,7 @@ in on a subsequent launch via the `-i` option.
 CREDITS
 -------
 
-A very crucial part of Virtual Nascom is the excellent Z80 emulator
+A very crucial part of Virtual Nascom is the excellent Z-80 emulator
 from Yaze, Copyright (C) 1995,1998  Frank D. Cringle.
 
 Thanks to Dene Carter for encouragement
