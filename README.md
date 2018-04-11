@@ -72,6 +72,21 @@ from Yaze, Copyright (C) 1995,1998  Frank D. Cringle.
 Thanks to Dene Carter for encouragement
 
 
+SOMETHING DIFFERENT
+-------------------
+
+This repo includes a quick hack at a repackaging the Nascom font
+as an BDF file, for use in X11.  Example usage:
+
+    $ cd BDF; mkfontdir; xset +fp $PWD; xset fp rehash
+    $ xterm -bg '#000' -fg '#0F0' -fn '-tommy-nascom-medium-r-normal--16-160-72-72-c-80-iso8859-1'
+
+and enjoy the nostalgia :)
+
+Known issues: should only be ~ 14 pixels tall, only the ASCII subset
+works, ~ and # looks funny, but that's Nascom.
+
+
 TODO
 ----
 
