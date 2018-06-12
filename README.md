@@ -45,7 +45,7 @@ the line.
 
 For example to run *Pac Man*, run
 
-    $ ./virtual-nnascom programs/e1000/pacman.nas
+    $ ./virtual-nascom programs/e1000/pacman.nas
 
 and type `E1000` in the Nascom 2 window. Control with arrow keys.
 
