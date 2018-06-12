@@ -8,10 +8,10 @@ OPTIMIZE=-O2
 #OPTIMIZE=-g
 #WARN=-Wmost -Werror
 WARN=-Wall -Wno-parentheses
-CFLAGS=$(OPTIMIZE) $(WARN) $(shell sdl-config --cflags)
+CFLAGS=$(OPTIMIZE) $(WARN) $(shell sdl2-config --cflags)
 
 virtual-nascom: virtual-nascom.o font.o simz80.o ihex.o
-	$(CC) $(CWARN) $(shell sdl-config --libs) $^ -o $@
+	$(CC) $(CWARN) $(shell sdl2-config --libs) $^ -o $@
 
 clean:
 	rm -f *.o *~ core

@@ -23,7 +23,7 @@
    A Nascom consists of:
 
     - a Z80 CPU,
-    - an UART,
+    - a UART,
     - a bitmapped keyboard,
     - memory:
         0000 - 07ff  2 KB ROM monitor,
@@ -45,7 +45,7 @@
 #include "simz80.h"
 #include "nascom.h"
 #include "ihex.h"
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 
 #define SLOW_DELAY  25000
@@ -56,40 +56,41 @@ static int t_sim_delay = SLOW_DELAY;
 
 
 #define FONT_H_PITCH 16
-#define FONT_H       15
+#define FONT_H       15			/* 15 or 14 - check docs */
 #define FONT_W        8
 
-#ifdef POCKET_CHIP
+#define DISPLAY_WIDTH   480
+#define DISPLAY_HEIGHT  256
 #define DISPLAY_X_OFFSET 48
-#define DISPLAY_Y_OFFSET 16
-#define DISPLAY_WIDTH   480
-#define DISPLAY_HEIGHT  272
-#else
-#define DISPLAY_WIDTH   480
-#define DISPLAY_HEIGHT  240
-#define DISPLAY_X_OFFSET 0
-#define DISPLAY_Y_OFFSET 0
-#endif
+#define DISPLAY_Y_OFFSET  8
 
 extern uint8_t nascom_font_raw[];
 
-static SDL_Surface *screen;
-static struct font {
-    SDL_Surface *surf;
-    int w, h, h_pitch;
-} nascom_font;
+static SDL_Window *screen;
+static SDL_Renderer *rend;
+static SDL_Texture *texture;
+static uint32_t pixmap[DISPLAY_HEIGHT * DISPLAY_WIDTH];
 
 static FILE *serial_out, *serial_in;
 static int tape_led = 0;
 static int tape_led_force = 0;
 static int serial_input_available = 0;
 
-static void RenderItem(struct font *font, int idx, int x, int y)
+static void RenderItem(int idx, int xp, int yp)
 {
-    auto SDL_Rect dest = { DISPLAY_X_OFFSET + x, DISPLAY_Y_OFFSET + y,
-                           font->w, font->h };
-    SDL_Rect clip = { 0, idx * font->h_pitch, font->w, font->h };
-    SDL_BlitSurface(font->surf, &clip, screen, &dest);
+	uint8_t *p = nascom_font_raw + 16 * idx;
+	uint32_t *r = pixmap + DISPLAY_X_OFFSET +
+	        DISPLAY_Y_OFFSET * DISPLAY_WIDTH +
+	        /* Only this bit is actually not part of a constant */
+	        xp + yp * DISPLAY_WIDTH;
+	int8_t y, x;
+	for (y = 0; y < FONT_H; y++) {
+		uint8_t c = *p;
+		for (x = FONT_W - 1; x >= 0; x--)
+			*r++ = (c & (1 << x)) ? 0xFFFFFFFF : 0;
+                r += DISPLAY_WIDTH - 8;
+		p++;
+	}
 }
 
 /* The keyboard holds the state state of every depressed key and a
@@ -142,12 +143,12 @@ static sim_action_t action = CONT;
 // Ctr-Shift-Meta 0 -> the REAL # (instead of the pound symbol)
 // Ctrl-Space -> `
 
-static void handle_key_event_dwim(SDL_keysym keysym, bool keydown);
-static void handle_key_event_raw(SDL_keysym keysym, bool keydown);
+static void handle_key_event_dwim(SDL_Keysym keysym, bool keydown);
+static void handle_key_event_raw(SDL_Keysym keysym, bool keydown);
 
-static void (*handle_key_event)(SDL_keysym, bool) = handle_key_event_raw;
+static void (*handle_key_event)(SDL_Keysym, bool) = handle_key_event_raw;
 
-static void handle_app_control(SDL_keysym keysym, bool keydown)
+static void handle_app_control(SDL_Keysym keysym, bool keydown)
 {
     if (keydown)
         switch (keysym.sym) {
@@ -194,7 +195,7 @@ static void handle_app_control(SDL_keysym keysym, bool keydown)
         }
 }
 
-static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
+static void handle_key_event_dwim(SDL_Keysym keysym, bool keydown)
 {
     int i = -1, bit = 0;
     static bool ui_shift = false;
@@ -203,7 +204,7 @@ static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
     bool emu_shift = false;
     bool emu_ctrl  = false;
     bool emu_graph = false;
-    int ch = toupper(keysym.sym);
+    int ch = toupper((uint8_t)keysym.sym);
 
     /* We are getting raw key code events, so first we need to handle
      * the UI a bit */
@@ -219,8 +220,8 @@ static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
         ui_ctrl = keydown;
         return;
 
-    case SDLK_RMETA:
-    case SDLK_LMETA:
+    case SDLK_RGUI:
+    case SDLK_LGUI:
     case SDLK_RALT:
     case SDLK_LALT:
         ui_graph = keydown;
@@ -230,7 +231,7 @@ static void handle_key_event_dwim(SDL_keysym keysym, bool keydown)
         break;
     }
 
-    emu_shift = !ui_shift && isalpha(keysym.sym);
+    emu_shift = !ui_shift && isalpha((uint8_t)keysym.sym);
     emu_ctrl  = ui_ctrl;
     emu_graph = ui_graph;
 
@@ -353,7 +354,7 @@ translate:
     }
 }
 
-static void handle_key_event_raw(SDL_keysym keysym, bool keydown)
+static void handle_key_event_raw(SDL_Keysym keysym, bool keydown)
 {
     int i = -1, bit = 0;
 
@@ -386,8 +387,8 @@ static void handle_key_event_raw(SDL_keysym keysym, bool keydown)
         case SDLK_DOWN:    i = 3, bit = 6; break;
         case SDLK_RIGHT:   i = 4, bit = 6; break;
 
-        case SDLK_LMETA:
-        case SDLK_RMETA:
+        case SDLK_LGUI:
+        case SDLK_RGUI:
         case SDLK_LALT:
         case SDLK_RALT:    i = 5, bit = 6; break;
 
@@ -500,7 +501,7 @@ static void ui_serve_input(void)
     }
 }
 
-
+/* Would be better to do the updating on demand and the push here */
 static void ui_display_refresh(void)
 {
     static uint8_t screencache[1024] = { 0 };
@@ -516,13 +517,21 @@ static void ui_display_refresh(void)
                 unsigned y     = index / 64;
                 y = (y + 1) % 16; // The last line is the first line
 
-                RenderItem(&nascom_font, *p, x * FONT_W, y * FONT_H);
+                RenderItem(*p, x * FONT_W, y * FONT_H);
                 dirty = true;
             }
 
-    if (dirty)
-        // SDL_UpdateRect(screen, 0, 0, screen->w, screen->h);
-        SDL_Flip(screen); // either seem to work
+    if (dirty) {
+	SDL_Rect sr;
+	sr.x = 0;
+	sr.y = 0;
+	sr.w = DISPLAY_WIDTH;
+	sr.h = DISPLAY_HEIGHT;
+	SDL_UpdateTexture(texture, NULL, pixmap, DISPLAY_WIDTH * 4);
+	SDL_RenderClear(rend);
+	SDL_RenderCopy(rend, texture, NULL, &sr);
+	SDL_RenderPresent(rend);
+    }
 }
 
 static int sim_delay(void)
@@ -744,61 +753,46 @@ int in(unsigned int port)
 
 static int mysetup(int argc, char **argv)
 {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
         fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
         return 1;
     }
 
     atexit(SDL_Quit);
 
-    screen = SDL_SetVideoMode(DISPLAY_WIDTH, DISPLAY_HEIGHT, 8, SDL_SWSURFACE);
+    screen = SDL_CreateWindow("Nascom 2",
+		SDL_WINDOWPOS_UNDEFINED,
+		SDL_WINDOWPOS_UNDEFINED,
+		DISPLAY_WIDTH, DISPLAY_HEIGHT,
+		SDL_WINDOW_RESIZABLE);
+
     if (screen == NULL) {
-        fprintf(stderr, "Unable to set video: %s\n", SDL_GetError());
+        fprintf(stderr, "Unable to create window: %s\n", SDL_GetError());
         return 1;
     }
 
-    /* Set the window caption */
-    SDL_WM_SetCaption("Nascom 2", "Nascom 2");
-
-#if 0
-    /* Populate the palette */
-    SDL_Color colors[256];
-
-    colors[0].r = colors[0].g = colors[0].b = 0;
-    colors[255].r = colors[255].b = 0;
-    colors[255].g = 255;
-
-    /* Set palette */
-    if (!SDL_SetColors(screen, colors, 0, 256)) {
-        fprintf(stderr, "Unable to create framebuffer palette: %s\n",
-                SDL_GetError());
-        screen = 0; //XXX should free it
-        return 1;
-    }
-#endif
-
-    /* Load font */
-    nascom_font.surf =
-        SDL_CreateRGBSurfaceFrom(
-                nascom_font_raw,
-                8 /* width */,
-           256*16 /* height */,
-                1 /* depth */,
-                1 /* pitch */,
-                0 /* Rmask */,
-                1 /* Gmask */,
-                0 /* Bmask */,
-                0 /* Amask */);
-    nascom_font.w = FONT_W;
-    nascom_font.h = FONT_H;
-    nascom_font.h_pitch = FONT_H_PITCH;
-
-    if (!nascom_font.surf) {
-        perror("Couldn't load the font\n");
-        return 1;
+    rend = SDL_CreateRenderer(screen, -1, 0);
+    if (rend == NULL) {
+	fprintf(stderr, "Unable to create renderer: %s\n", SDL_GetError());
+	return 1;
     }
 
-    nascom_font.surf = SDL_DisplayFormat(nascom_font.surf);
+    if (texture)
+	SDL_DestroyTexture(texture);
+
+    texture = SDL_CreateTexture(rend, SDL_PIXELFORMAT_ARGB8888,
+	SDL_TEXTUREACCESS_STREAMING, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    if (texture == NULL) {
+	fprintf(stderr, "Unable to create display texture: %s\n", SDL_GetError());
+	return 1;
+    }
+
+    SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+    SDL_RenderClear(rend);
+    SDL_RenderPresent(rend);
+
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+    SDL_RenderSetLogicalSize(rend, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 
     return 0;
 }
