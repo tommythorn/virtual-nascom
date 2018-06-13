@@ -1,5 +1,5 @@
-Virtual Nascom, Version 2.0, 2018-04-11
-========================================
+Virtual Nascom, Version 2.0, 2018-07-13
+=======================================
 
 This is a version 2.0 of Virtual Nascom, yet another Nascom 2
 emulator.  There's emulation support for all(?) of the standard
@@ -71,7 +71,7 @@ A very crucial part of Virtual Nascom is the excellent Z-80 emulator
 from Yaze, Copyright (C) 1995,1998  Frank D. Cringle.
 
 Thanks to Dene Carter for encouragement
-
+Thanks to Alan Cox for the pixel doubling
 
 SOMETHING DIFFERENT
 -------------------
@@ -90,8 +90,6 @@ works, ~ and # looks funny, but that's Nascom.
 
 TODO
 ----
-
-* Support pixel doubling
 
 * Reconsider the name
 
