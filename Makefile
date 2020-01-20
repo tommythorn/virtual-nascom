@@ -11,7 +11,7 @@ WARN=-Wall -Wno-parentheses
 CFLAGS=$(OPTIMIZE) $(WARN) $(shell sdl2-config --cflags)
 
 virtual-nascom: virtual-nascom.o font.o simz80.o ihex.o
-	$(CC) $(CWARN) $(shell sdl2-config --libs) $^ -o $@
+	$(CC) $(CWARN) $^ -o $@ $(shell sdl2-config --libs)
 
 clean:
 	rm -f *.o *~ core

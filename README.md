@@ -1,4 +1,4 @@
-Virtual Nascom, Version 2.0, 2018-07-13
+Virtual Nascom, Version 2.0, 2020-01-20
 =======================================
 
 This is a version 2.0 of Virtual Nascom, yet another Nascom 2
@@ -24,6 +24,9 @@ INSTALLATION
 Virtual Nascom should compile on all platform with SDL support, but
 has only been tested on macOS (10.12.4 and older) and various Linux
 versions.
+
+Virtual Nascom depends on SDL2.  For Ubuntu `sudo apt install
+libsdl2-dev` suffices.
 
 To compile you may have to adapt the Makefile with the libraries you
 need and their path, but generally it should be enough to simply run
