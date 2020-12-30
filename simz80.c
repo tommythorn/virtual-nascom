@@ -2198,13 +2198,14 @@ simz80(FASTREG PC, int count, int (*fnc)())
 		case 0xA2:			/* INI */
 			PutBYTE(HL, Input(lreg(BC))); ++HL;
 			SETFLAG(N, 1);
-			SETFLAG(P, (--BC & 0xffff) != 0);
+			Sethreg(BC, hreg(BC) - 1);
+			SETFLAG(Z, hreg(BC) == 0);
 			break;
 		case 0xA3:			/* OUTI */
 			Output(lreg(BC), GetBYTE(HL)); ++HL;
 			SETFLAG(N, 1);
-			Sethreg(BC, lreg(BC) - 1);
-			SETFLAG(Z, lreg(BC) == 0);
+			Sethreg(BC, hreg(BC) - 1);
+			SETFLAG(Z, hreg(BC) == 0);
 			break;
 		case 0xA8:			/* LDD */
 			acu = GetBYTE(HL); --HL;
@@ -2228,14 +2229,14 @@ simz80(FASTREG PC, int count, int (*fnc)())
 		case 0xAA:			/* IND */
 			PutBYTE(HL, Input(lreg(BC))); --HL;
 			SETFLAG(N, 1);
-			Sethreg(BC, lreg(BC) - 1);
-			SETFLAG(Z, lreg(BC) == 0);
+			Sethreg(BC, hreg(BC) - 1);
+			SETFLAG(Z, hreg(BC) == 0);
 			break;
 		case 0xAB:			/* OUTD */
 			Output(lreg(BC), GetBYTE(HL)); --HL;
 			SETFLAG(N, 1);
-			Sethreg(BC, lreg(BC) - 1);
-			SETFLAG(Z, lreg(BC) == 0);
+			Sethreg(BC, hreg(BC) - 1);
+			SETFLAG(Z, hreg(BC) == 0);
 			break;
 		case 0xB0:			/* LDIR */
 			acu = hreg(AF);
