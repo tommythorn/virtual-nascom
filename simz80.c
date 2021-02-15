@@ -59,8 +59,8 @@ volatile int stopsim;
 } while (0)
 
 #define PUSH(x) do {							\
-	--SP; RAM(SP) = (x) >> 8;						\
-	--SP; RAM(SP) = x;							\
+	--SP; RAM(SP) = (x) >> 8;					\
+	--SP; RAM(SP) = x;						\
 } while (0)
 
 #define JPC(cond) PC = cond ? GetWORD(PC) : PC+2
@@ -115,7 +115,7 @@ cb_prefix(FASTREG adr)
 		case 3: ++PC; acu = lreg(DE); break;
 		case 4: ++PC; acu = hreg(HL); break;
 		case 5: ++PC; acu = lreg(HL); break;
-		case 6: ++PC; acu = GetBYTE(adr);  break;
+		case 6: ++PC; acu = GetBYTE(adr); break;
 		case 7: ++PC; acu = hreg(AF); break;
 		}
 		switch (op & 0xc0) {
@@ -1926,7 +1926,7 @@ simz80(FASTREG PC, int count, int (*fnc)())
 				parity(temp);
 			break;
 		case 0x41:			/* OUT (C),B */
-			Output(lreg(BC), BC);
+			Output(lreg(BC), hreg(BC));
 			break;
 		case 0x42:			/* SBC HL,BC */
 			HL &= 0xffff;
@@ -1969,7 +1969,7 @@ simz80(FASTREG PC, int count, int (*fnc)())
 				parity(temp);
 			break;
 		case 0x49:			/* OUT (C),C */
-			Output(lreg(BC), BC);
+			Output(lreg(BC), lreg(BC));
 			break;
 		case 0x4A:			/* ADC HL,BC */
 			HL &= 0xffff;
@@ -2002,7 +2002,7 @@ simz80(FASTREG PC, int count, int (*fnc)())
 				parity(temp);
 			break;
 		case 0x51:			/* OUT (C),D */
-			Output(lreg(BC), DE);
+			Output(lreg(BC), hreg(DE));
 			break;
 		case 0x52:			/* SBC HL,DE */
 			HL &= 0xffff;
@@ -2034,7 +2034,7 @@ simz80(FASTREG PC, int count, int (*fnc)())
 				parity(temp);
 			break;
 		case 0x59:			/* OUT (C),E */
-			Output(lreg(BC), DE);
+			Output(lreg(BC), lreg(DE));
 			break;
 		case 0x5A:			/* ADC HL,DE */
 			HL &= 0xffff;
@@ -2066,7 +2066,7 @@ simz80(FASTREG PC, int count, int (*fnc)())
 				parity(temp);
 			break;
 		case 0x61:			/* OUT (C),H */
-			Output(lreg(BC), HL);
+			Output(lreg(BC), hreg(HL));
 			break;
 		case 0x62:			/* SBC HL,HL */
 			HL &= 0xffff;
@@ -2099,7 +2099,7 @@ simz80(FASTREG PC, int count, int (*fnc)())
 				parity(temp);
 			break;
 		case 0x69:			/* OUT (C),L */
-			Output(lreg(BC), HL);
+			Output(lreg(BC), lreg(HL));
 			break;
 		case 0x6A:			/* ADC HL,HL */
 			HL &= 0xffff;
@@ -2158,7 +2158,7 @@ simz80(FASTREG PC, int count, int (*fnc)())
 				parity(temp);
 			break;
 		case 0x79:			/* OUT (C),A */
-			Output(lreg(BC), AF);
+			Output(lreg(BC), hreg(AF));
 			break;
 		case 0x7A:			/* ADC HL,SP */
 			HL &= 0xffff;
