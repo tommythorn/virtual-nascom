@@ -46,7 +46,9 @@
 #include "nascom.h"
 #include "ihex.h"
 #include <SDL2/SDL.h>
-
+#ifdef __EMSCRIPTEN__
+  #include <emscripten.h>
+#endif
 
 #define SLOW_DELAY  25000
 #define FAST_DELAY 900000
@@ -558,6 +560,47 @@ usage(void)
 
 static int mysetup(int argc, char **argv);
 
+#ifdef __EMSCRIPTEN__
+static int em_sim_delay(void) {
+    ui_display_refresh();
+    return DONE;
+}
+
+static void em_main_loop(void) {
+    simz80(pc, t_sim_delay, em_sim_delay);
+}
+
+EMSCRIPTEN_KEEPALIVE void reset_nascom() {
+    pc = 0;
+}
+
+EMSCRIPTEN_KEEPALIVE void load_nascom_string(const char *str) {
+    int a, b1, b2, b3, b4, b5, b6, b7, b8;
+    int len = strlen(str);
+    int i = 0;
+    int count = 0;
+    while (i < len) {
+        if (sscanf(&(str[i]), "%x %x %x %x %x %x %x %x %x",
+	               &a, &b1, &b2, &b3, &b4, &b5, &b6, &b7, &b8) == 9) {
+        RAM(a)   = b1;
+        RAM(a+1) = b2;
+        RAM(a+2) = b3;
+        RAM(a+3) = b4;
+        RAM(a+4) = b5;
+        RAM(a+5) = b6;
+        RAM(a+6) = b7;
+        RAM(a+7) = b8;
+		count += 8;
+    }
+    i += 34;
+    while (i < len && str[i] != '\n')
+        i++;
+  }
+  if (verbose)
+      printf(". Successfully loaded %d bytes\n", count);
+}
+#endif
+
 int main(int argc, char **argv)
 {
     int c;
@@ -628,7 +671,13 @@ int main(int argc, char **argv)
 
     ram[0x10000] = ram[0]; // Make GetWord[0xFFFF) work correctly
 
+    puts("Starting Z80 Simulator\n");
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(em_main_loop, 30, 1);
+#else
     simz80(pc, t_sim_delay, sim_delay);
+#endif
+    puts("Stopped Z80 Simulator\n");
 
     save_nascom(0x800, 0x10000, "memorydump.nas");
 
@@ -753,7 +802,11 @@ int in(unsigned int port)
 
 static int mysetup(int argc, char **argv)
 {
+#ifdef __EMSCRIPTEN__
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+#else
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+#endif
         fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
         return 1;
     }

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<!--
+  Author: Peter Jensen
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Nascom 2 Simulator</title>
+  <style>
+    html {
+      display: table;
+      margin: auto;
+    }
+    body {
+      display: table-cell;
+      font-family: Verdana;
+      font-size: 12pt;
+      background: #e0e0e0;
+    }
+    h1 {
+      text-align: center;
+    }
+    #canvas-container {
+      text-align: center;
+    }
+    #canvas {
+      border-radius:10px;
+    }
+    #controls {
+      text-align: center;
+    }
+    #sub-header {
+      text-align: center;
+      font-style: italic;
+      padding-bottom: 10px;
+    }
+  </style>
+</head>
+<body onload="init()">
+  <h1>Nascom 2 Simulator</h1>
+  <div id="sub-header">Ported to the Web by: Peter Jensen</div>
+  <div id="canvas-container">
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" width="720" height="384"></canvas>
+  </div>
+  <div id="controls">
+    <button id="reset">Reset</button>
+    <select id="pick">
+      <option>Avalanch.nas</option>
+      <option>BLS-Breakout.nas</option>
+      <option>BLS-Pascal-1.2.nas</option>
+      <option>BLS-Spacezap.nas</option>
+      <option>Hole.nas</option>
+      <option>KKS-3dmaze.nas</option>
+      <option>Monster.nas</option>
+      <option>Reversi.nas</option>
+      <option>Serpent.nas</option>
+      <option>Spcinv.nas</option>
+      <option>galaxian.nas</option>
+      <option>jailbrk.nas</option>
+      <option>pacman.nas</option>
+      <option>pacman2.nas</option>
+      <option>spacewar.nas</option>
+    </select>
+    <button id="load">Load</button>
+  </div>
+  <div>
+    <h3>Usage</h3>
+    <ul>
+      <li>Pick the program to load, and click 'Load'</li>
+      <li>Execute the program with the NAS-SYS command 'E1000' (typically)</li>
+    </ul>
+    <h3>Notes</h3>
+    <ul>
+      <li>Adapted from: <A href="https://github.com/tommythorn/virtual-nascom">Tommy Thorn's Simulator</A></li>
+      <li>Built with <A href="https://emscripten.org">Emscripten</A></li>
+      <li>Runs with WebAssembly and Javascript</li>
+    </ul>
+    <h3>TODO</h3>
+    <ul>
+      <li>Figure out how to simulate 'save to tape'.  Maybe use IndexedDb or localStorage</li>
+    </ul>
+  </div>
+  <script type='text/javascript'>
+    var Module = {
+      canvas: (function() { return document.getElementById('canvas'); })(),
+      print: function(text) {
+          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+          console.log(text);
+      },
+      printErr: function(text) {
+          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+          console.error(text);
+      }
+    };
+  </script>
+  <script src="virtual-nascom.js"></script>
+  <script>
+    var elems = {
+      reset: null,
+      pick: null,
+      load: null
+    };
+    function load_nascom_string(str) {
+      let ptr = allocate(intArrayFromString(str), ALLOC_NORMAL);
+      Module._load_nascom_string(ptr);
+      _free(ptr);
+    }
+    function load(e) {
+      const fileName = elems.pick.options[elems.pick.selectedIndex].innerText;
+      const fullFileName = "programs/e1000/" + fileName;
+      fetch(fullFileName)
+        .then(response => response.text())
+        .then(text => load_nascom_string(text));
+    }
+    function init() {
+      elems.reset = document.getElementById("reset");
+      elems.pick = document.getElementById("pick");
+      elems.load = document.getElementById("load");
+      elems.load.addEventListener("click", load);
+      elems.reset.addEventListener("click", Module._reset_nascom);
+    }
+  </script>
+</body>
+</html>
