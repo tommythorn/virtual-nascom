@@ -148,7 +148,7 @@ static sim_action_t action = CONT;
 static void handle_key_event_dwim(SDL_Keysym keysym, bool keydown);
 static void handle_key_event_raw(SDL_Keysym keysym, bool keydown);
 
-static void (*handle_key_event)(SDL_Keysym, bool) = handle_key_event_raw;
+static void (*handle_key_event)(SDL_Keysym, bool) = handle_key_event_dwim;
 
 static void handle_app_control(SDL_Keysym keysym, bool keydown)
 {
