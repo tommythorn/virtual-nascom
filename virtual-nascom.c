@@ -50,7 +50,20 @@
   #include <emscripten.h>
 #endif
 
-#define SLOW_DELAY  25000
+
+/*
+ * The version of simz80 we are using doesn't could T-states, so count
+ * (t_sim_delay) is given in instructions.  As a rough average, we
+ * assume each instruction takes 8 T cycles (@ 4 MHz).  That means
+ * that at the refresh_rate we have 4,000,000/refresh_rate/8 cycles to
+ * run.
+ */
+
+#define NASCOM2_FREQUENCY    4000000
+#define UI_REFRESH_RATE           60
+#define ESTIMATED_CYCLES_PER_INSN  8
+
+#define SLOW_DELAY  (NASCOM2_FREQUENCY/ESTIMATED_CYCLES_PER_INSN/UI_REFRESH_RATE)
 #define FAST_DELAY 900000
 
 static bool go_fast = false;
@@ -540,8 +553,7 @@ static int sim_delay(void)
 {
     ui_display_refresh();
 
-    if (!go_fast)
-        SDL_Delay(50);
+    SDL_Delay(1000/UI_REFRESH_RATE);
 
     return action;
 }
