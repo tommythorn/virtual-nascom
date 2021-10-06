@@ -210,45 +210,35 @@ static void handle_app_control(SDL_Keysym keysym, bool keydown)
         }
 }
 
+/*
+ * Theory of operation: we first translate the SDL into the
+ * corresponding key the user pressed (eg. ':' will show up as ';' +
+ * shift modifier).  This assumes US keyboard, sorry (I'm not sure how
+ * to handle this better).
+ *
+ * Next we try to find what you would have had to press on the Nascom
+ * 2 keyboard to get that.
+ */
 static void handle_key_event_dwim(SDL_Keysym keysym, bool keydown)
 {
-    int i = -1, bit = 0;
-    static bool ui_shift = false;
-    static bool ui_ctrl  = false;
-    static bool ui_graph = false;
-    bool emu_shift = false;
-    bool emu_ctrl  = false;
-    bool emu_graph = false;
-    int ch = toupper((uint8_t)keysym.sym);
-
-    /* We are getting raw key code events, so first we need to handle
-     * the UI a bit */
-
+    /* Filter out modifiers as we rely on SDL to track those */
     switch (keysym.sym) {
     case SDLK_LSHIFT:
     case SDLK_RSHIFT:
-        ui_shift = keydown;
-        return;
-
     case SDLK_LCTRL:
     case SDLK_RCTRL:
-        ui_ctrl = keydown;
-        return;
-
     case SDLK_RGUI:
     case SDLK_LGUI:
     case SDLK_RALT:
     case SDLK_LALT:
-        ui_graph = keydown;
         return;
-
-    default:
-        break;
     }
 
-    emu_shift = !ui_shift && isalpha((uint8_t)keysym.sym);
-    emu_ctrl  = ui_ctrl;
-    emu_graph = ui_graph;
+    bool ui_shift  = (keysym.mod & (KMOD_RSHIFT | KMOD_LSHIFT)) != 0;
+    bool emu_ctrl  = (keysym.mod & (KMOD_RCTRL  | KMOD_LCTRL))  != 0;
+    bool emu_graph = (keysym.mod & (KMOD_RALT   | KMOD_LALT))   != 0;
+    bool emu_shift = !ui_shift && (keysym.sym < 127 && isalpha((uint8_t)keysym.sym));
+    int  ch        = toupper((uint8_t)keysym.sym);
 
     if (ui_shift)
         for (int i = 0; kbd_us_shift[i]; i += 2) {
@@ -323,7 +313,8 @@ static void handle_key_event_dwim(SDL_Keysym keysym, bool keydown)
             goto search;
         }
 
-    search:
+search:;
+    int i = -1, bit = 0;
     if (keysym.sym < 128) {
         for (i = 1; i < 9; ++i)
             for (bit = 0; bit < 7; ++bit)
@@ -346,26 +337,12 @@ static void handle_key_event_dwim(SDL_Keysym keysym, bool keydown)
     }
 
 translate:
-    if (emu_shift)
-        keyboard.mask[0] |= 1 << 4;
-    else
-        keyboard.mask[0] &= ~(1 << 4);
-
-    if (emu_ctrl)
-        keyboard.mask[0] |= 1 << 3;
-    else
-        keyboard.mask[0] &= ~(1 << 3);
-
-    if (emu_graph)
-        keyboard.mask[5] |= 1 << 6;
-    else
-        keyboard.mask[5] &= ~(1 << 6);
-
+    memset(keyboard.mask, 0, sizeof keyboard.mask);
     if (i != -1) {
-        if (keydown)
-            keyboard.mask[i] |= 1 << bit;
-        else
-            keyboard.mask[i] &= ~(1 << bit);
+        keyboard.mask[0] |= emu_shift << 4;
+        keyboard.mask[0] |= emu_ctrl << 3;
+        keyboard.mask[5] |= emu_graph << 6;
+        keyboard.mask[i] |= keydown << bit;
     }
 }
 
