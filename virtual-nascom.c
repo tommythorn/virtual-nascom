@@ -45,7 +45,7 @@
 #include "simz80.h"
 #include "nascom.h"
 #include "ihex.h"
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #ifdef __EMSCRIPTEN__
   #include <emscripten.h>
 #endif
