@@ -630,7 +630,7 @@ int main(int argc, char **argv)
         }
 
     puts("Virtual Nascom, a Nascom 2 emulator version " VERSION "\n"
-         "Copyright (C) 2000,2009,2017,2018  Tommy Thorn.\n"
+         "Copyright (C) 2000,2009,2017,2018,2021  Tommy Thorn.\n"
          "http://github.com/tommythorn/virtual-nascom.git\n"
          "Uses software from Yet Another Z80 Emulator version "YAZEVERSION
          ", Copyright (C) 1995,1998 Frank D. Cringle.\n"
