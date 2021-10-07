@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <ctype.h>
+#include <assert.h>
 #include "simz80.h"
 #include "nascom.h"
 #include "ihex.h"
@@ -129,7 +130,7 @@ static struct {
     0};
 
 static char * kbd_translation[] = {
-/* 0 */  "________",
+/* 0 */  "_\t@__-\r\010",
 /* 1 */  "__TXF5BH",
 /* 2 */  "__YZD6NJ",
 /* 3 */  "__USE7MK",
@@ -137,7 +138,6 @@ static char * kbd_translation[] = {
 /* 5 */  "__OQ39.;",
 /* 6 */  "_[P120/:",
 /* 7 */  "_]R C4VG",
-/* 8 */  "_\t@__-\r\010"
 };
 
 #define ___ " " // Dummy
@@ -163,51 +163,50 @@ static void handle_key_event_raw(SDL_Keysym keysym, bool keydown);
 
 static void (*handle_key_event)(SDL_Keysym, bool) = handle_key_event_dwim;
 
-static void handle_app_control(SDL_Keysym keysym, bool keydown)
+static void handle_app_control(SDL_Keysym keysym)
 {
-    if (keydown)
-        switch (keysym.sym) {
-        case SDLK_END: {
-            FILE *f;
-            f = fopen("screendump", "a+");
-            fwrite((const void *) (ram+0x800), 1, 1024, f);
-            fclose(f);
-            if (verbose) printf("Screen dumped\n");
-            break;
-        }
+    switch (keysym.sym) {
+    case SDLK_END: {
+        FILE *f;
+        f = fopen("screendump", "a+");
+        fwrite((const void *) (ram+0x800), 1, 1024, f);
+        fclose(f);
+        if (verbose) printf("Screen dumped\n");
+        break;
+    }
 
-        case SDLK_F4:
-            action = DONE;
-            break;
+    case SDLK_F4:
+        action = DONE;
+        break;
 
-        case SDLK_F5:
-            go_fast = !go_fast;
-            printf("Switch to %s\n", go_fast ? "fast" : "slow");
+    case SDLK_F5:
+        go_fast = !go_fast;
+        printf("Switch to %s\n", go_fast ? "fast" : "slow");
 
-            t_sim_delay = go_fast ? FAST_DELAY : SLOW_DELAY;
-            break;
+        t_sim_delay = go_fast ? FAST_DELAY : SLOW_DELAY;
+        break;
 
-        case SDLK_F6:
-            tape_led = tape_led_force ^= 1;
-            break;
+    case SDLK_F6:
+        tape_led = tape_led_force ^= 1;
+        break;
 
-        case SDLK_F9:
-            action = RESET;
-            break;
+    case SDLK_F9:
+        action = RESET;
+        break;
 
-        case SDLK_F10:
-            if (handle_key_event == handle_key_event_raw)
-                handle_key_event = handle_key_event_dwim;
-            else
-                handle_key_event = handle_key_event_raw;
+    case SDLK_F10:
+        if (handle_key_event == handle_key_event_raw)
+            handle_key_event = handle_key_event_dwim;
+        else
+            handle_key_event = handle_key_event_raw;
 
-            printf("Switch to %s keyboard\n",
-                   handle_key_event == handle_key_event_raw ? "raw" : "dwim");
-            break;
+        printf("Switch to %s keyboard\n",
+               handle_key_event == handle_key_event_raw ? "raw" : "dwim");
+        break;
 
-        default:
-            ;
-        }
+    default:
+        ;
+    }
 }
 
 /*
@@ -218,40 +217,51 @@ static void handle_app_control(SDL_Keysym keysym, bool keydown)
  *
  * Next we try to find what you would have had to press on the Nascom
  * 2 keyboard to get that.
+ *
+ * Yes, this would all be faster (and simpler) by being completely
+ * table driven), (x,y,shift,ctrl,graph) = table[sym, mod];
  */
 static void handle_key_event_dwim(SDL_Keysym keysym, bool keydown)
 {
-    /* Filter out modifiers as we rely on SDL to track those */
-    switch (keysym.sym) {
-    case SDLK_LSHIFT:
-    case SDLK_RSHIFT:
-    case SDLK_LCTRL:
-    case SDLK_RCTRL:
-    case SDLK_RGUI:
-    case SDLK_LGUI:
-    case SDLK_RALT:
-    case SDLK_LALT:
-        return;
-    }
+    memset(keyboard.mask, 0, sizeof keyboard.mask);
 
-    bool ui_shift  = (keysym.mod & (KMOD_RSHIFT | KMOD_LSHIFT)) != 0;
+    if (!keydown)
+        return;
+
+    /*** Step 1: Translate SDL keyboard events into ASCII ***/
+
+    bool emu_shift = (keysym.mod & (KMOD_RSHIFT | KMOD_LSHIFT)) != 0;
     bool emu_ctrl  = (keysym.mod & (KMOD_RCTRL  | KMOD_LCTRL))  != 0;
     bool emu_graph = (keysym.mod & (KMOD_RALT   | KMOD_LALT))   != 0;
-    bool emu_shift = !ui_shift && (keysym.sym < 127 && isalpha((uint8_t)keysym.sym));
-    int  ch        = toupper((uint8_t)keysym.sym);
+    int  ch        = 0;
 
-    if (ui_shift)
+    switch (keysym.sym) {
+    case SDLK_UP:      break;
+    case SDLK_LEFT:    break;
+    case SDLK_DOWN:    break;
+    case SDLK_RIGHT:   break;
+    default:
+        if (128 < keysym.sym) {
+            handle_app_control(keysym);
+            return;
+        }
+        ch = toupper((uint8_t)keysym.sym);
+    }
+
+    /* Translate shifted keys */
+    if (emu_shift)
         for (int i = 0; kbd_us_shift[i]; i += 2) {
             if (kbd_us_shift[i] == ch) {
                 ch = kbd_us_shift[i+1];
+                emu_shift = false;
                 break;
             }
         }
 
-    /* Now translate the ASCII to Nascom keyboard events */
+    /*** Step 2: Translate the ASCII to Nascom keyboard events ***/
 
     // Quick hack to enable LF (which is shift-CH)
-    if (ch == '\t' && ui_shift) {
+    if (ch == '\t' && emu_shift) {
         emu_shift = true;
     }
 
@@ -283,7 +293,6 @@ static void handle_key_event_dwim(SDL_Keysym keysym, bool keydown)
     if (ch == ' ')
         goto search;
 
-
     // '@' is also special
     if (ch == '@') {
         emu_shift = true;
@@ -313,36 +322,27 @@ static void handle_key_event_dwim(SDL_Keysym keysym, bool keydown)
             goto search;
         }
 
-search:;
-    int i = -1, bit = 0;
+search:
+    keyboard.mask[0] |= emu_shift << 4;
+    keyboard.mask[0] |= emu_ctrl  << 3;
+    keyboard.mask[5] |= emu_graph << 6;
+
     if (keysym.sym < 128) {
-        for (i = 1; i < 9; ++i)
-            for (bit = 0; bit < 7; ++bit)
-                if (kbd_translation[i][7-bit] == ch) {
-                    goto translate;
+        for (unsigned row = 0; row < 8; ++row)
+            for (unsigned col = 0; col < 7; ++col)
+                if (kbd_translation[row][7-col] == ch) {
+                    keyboard.mask[row] |= 1 << col;
+                    return;
                 }
-
-        i = -1;
     } else {
-        emu_shift = ui_shift;
-
         switch (keysym.sym) {
-        case SDLK_UP:      i = 1, bit = 6; break;
-        case SDLK_LEFT:    i = 2, bit = 6; break;
-        case SDLK_DOWN:    i = 3, bit = 6; break;
-        case SDLK_RIGHT:   i = 4, bit = 6; break;
+        case SDLK_UP:    keyboard.mask[1] |= 1 << 6; break;
+        case SDLK_LEFT:  keyboard.mask[2] |= 1 << 6; break;
+        case SDLK_DOWN:  keyboard.mask[3] |= 1 << 6; break;
+        case SDLK_RIGHT: keyboard.mask[4] |= 1 << 6; break;
         default:
-            handle_app_control(keysym, keydown);
+            handle_app_control(keysym);
         }
-    }
-
-translate:
-    memset(keyboard.mask, 0, sizeof keyboard.mask);
-    if (i != -1) {
-        keyboard.mask[0] |= emu_shift << 4;
-        keyboard.mask[0] |= emu_ctrl << 3;
-        keyboard.mask[5] |= emu_graph << 6;
-        keyboard.mask[i] |= keydown << bit;
     }
 }
 
@@ -357,17 +357,17 @@ static void handle_key_event_raw(SDL_Keysym keysym, bool keydown)
 
     if (keysym.sym < 128) {
         int ch = toupper(keysym.sym);
-        for (i = 1; i < 9; ++i)
+        for (i = 0; i < 8; ++i)
             for (bit = 0; bit < 7; ++bit)
                 if (kbd_translation[i][7-bit] == ch) {
                     goto translate;
                 }
         i = -1;
-        translate:;
+translate:;
     } else {
         switch (keysym.sym) {
         // case Newline  i = 0, bit = 5; break;
-        // case '@':     i = 8, bit = 5; break;
+        // case '@':     i = 0, bit = 5; break;
         case SDLK_LCTRL:
         case SDLK_RCTRL:   i = 0, bit = 3; break;
 
@@ -384,9 +384,11 @@ static void handle_key_event_raw(SDL_Keysym keysym, bool keydown)
         case SDLK_LALT:
         case SDLK_RALT:    i = 5, bit = 6; break;
 
-        case SDLK_KP_ENTER:i = 8, bit = 6; break;
+        case SDLK_KP_ENTER:i = 0, bit = 6; break;
         default:
-            handle_app_control(keysym, keydown);
+            if (keydown)
+                handle_app_control(keysym);
+            return;
         }
     }
 
@@ -728,22 +730,18 @@ void out(unsigned int port, unsigned char value)
 {
     static unsigned char port0;
 
-    unsigned int down_trans;
-
-    if (0) fprintf(stdout, "[%02x] <- %02x\n", port, value);
-
     switch (port) {
-    case 0:
+    case 0:;
         /* KBD */
-        down_trans = port0 & ~value;
+        uint8_t posedge = ~port0 & value;
         port0 = value;
 
-        if ((down_trans & P0_OUT_KEYBOARD_CLOCK) && keyboard.index < 9)
-            keyboard.index++;
-        if (down_trans & P0_OUT_KEYBOARD_RESET) {
+        if (value & P0_OUT_KEYBOARD_RESET) {
             ui_serve_input();
             keyboard.index = 0;
-        }
+            port0 = P0_OUT_KEYBOARD_CLOCK;
+        } else if ((posedge & P0_OUT_KEYBOARD_CLOCK))
+            keyboard.index = (keyboard.index + 1) & 7;
 #if 0
         if (tape_led != !!(value & P0_OUT_TAPE_DRIVE_LED))
             fprintf(stderr, "Tape LED = %d\n", !!(value & P0_OUT_TAPE_DRIVE_LED));
@@ -769,6 +767,7 @@ int in(unsigned int port)
     case 0:
         /* KBD */
         /* printf("[%d]", keyboard.index); */
+        assert(keyboard.index < 8);
         return ~keyboard.mask[keyboard.index];
     case 1:
         if (serial_input_available & tape_led) {
