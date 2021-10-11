@@ -1,0 +1,72 @@
+<html>
+<head>
+  <meta name="viewport" content="viewport-fit=cover, user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+  <style>
+  </style>
+</head>
+<body onload="init()">
+<canvas id="canvas" width="384" height="240" style="background:black"></canvas>
+<div style="width:0px; height:0px; overflow:hidden">
+  <textarea id="text"></textarea>
+</div>
+<script>
+  var $text;
+  var $canvas;
+  var ctx;
+  var keyPressCount = 0;
+
+  function canvasClick(e) {
+    e.preventDefault();
+    $canvas.blur();
+    //alert("Canvas Click");
+    $text.focus();
+  }
+  function customKeyDown(event) {
+    const margin = 25;
+    const e = event.detail.orgEvent;
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, 384, 240);
+    ctx.fillStyle = "white";
+    ctx.fillText("count: " + keyPressCount, margin, 20);
+    ctx.fillText("code: " + e.code, margin, 40);
+    ctx.fillText("key: " + e.key, margin, 60);
+    ctx.fillText("keyCode: " + e.keyCode, margin, 80);
+    ctx.fillText("shiftKey: " + e.shiftKey, margin, 100);
+    ctx.fillText("altKey: " + e.altKey, margin, 120);
+    ctx.fillText("ctrlKey: " + e.ctrlKey, margin, 140);
+    ctx.fillText("metaKey: " + e.metaKey, margin, 160);
+    ctx.fillText("text.value: " + $text.value, margin, 180);
+    ctx.fillText("newChar: " + event.detail.newChar, margin, 200);
+  }
+
+  function keyDown(e) {
+    keyPressCount++;
+    if (e.keyCode == 229) {
+      let oldText = $text.value;
+      // wait for new character to appear in textarea
+      setTimeout(() => {
+        let newText = $text.value;
+        let diffText = newText.replace(oldText, '');
+        let customKeyDown = new CustomEvent("customKeyDown", {detail: {orgEvent: e, newChar: diffText}});
+        $canvas.dispatchEvent(customKeyDown);
+      }, 0);
+    }
+    else {
+      let customKeyDown = new CustomEvent("customKeyDown", {detail: {orgEvent: e, newChar: ''}});
+      $canvas.dispatchEvent(customKeyDown);
+    }
+  }
+
+  function init() {
+    $text  = document.getElementById("text");
+    $canvas = document.getElementById("canvas");
+    $canvas.addEventListener("click", canvasClick);
+    $canvas.addEventListener("customKeyDown", customKeyDown);
+    document.addEventListener("keydown", keyDown);
+    ctx = $canvas.getContext("2d");
+    ctx.fillStyle = "white";
+    ctx.font = "16px sans-serif";
+  }
+</script>
+</body>
+</html>
