@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<!--
+  Author: Peter Jensen
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Nascom 2 Keyboard</title>
+  <style>
+    :root {
+      --container-width:100%;
+      --key-width:49px;
+      --key-border-width:2px;
+      --key-margin:2px;
+    }
+    @media (min-width: 1000px) {
+      :root {
+        --container-width:50%;
+      }
+    }
+    .n2k-container {
+      width:var(--container-width);
+      font-size: 20pt;
+      font-family:Arial, Helvetica, sans-serif;
+      color:white;
+    }
+    .n2k-row {
+      display: flex;
+    }
+    .n2k-key {
+      display: inline-flex;
+      border: var(--key-border-width) black solid;
+      border-radius: 8px;
+      width:var(--key-width);
+      aspect-ratio:1;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 0px;
+      margin: var(--key-margin);
+      background: rgb(162, 134, 107);
+      cursor:pointer;
+    }
+    .n2k-key:active {
+      background:rgb(90,59,40);
+    }
+    .n2k-medium-font {
+      font-size:0.75em;
+    }
+    .n2k-small-font {
+      font-size:0.5em;
+    }
+    .n2k-key.n2k-medium-font > div {
+      margin-bottom:0px;
+      margin-top:0px;
+    }
+  </style>
+</head>
+<body onload="Ui.init()" onresize="Ui.init()">
+  <script>
+    class Ui {
+      static makeKeyboardKey(key) {
+        let $key = Ui.d.createElement("div");
+        $key.classList.add("n2k-key");
+        $key.setAttribute("role", "button");
+        let labels = key.labels;
+        if (Array.isArray(labels) && labels.length == 2) {
+          let $upper = Ui.d.createElement("div");
+          $upper.innerHTML = labels[0];
+          let $lower = Ui.d.createElement("div");
+          $lower.innerHTML = labels[1];
+          $key.appendChild($upper);
+          $key.appendChild($lower);
+          $key.classList.add("n2k-medium-font");
+          if (labels[0][0] != '&' && (labels[0].length > 1 || labels[1].length > 1)) {
+            $key.classList.add("n2k-small-font");
+          }
+        }
+        else {
+          $key.innerHTML = labels;
+          if (labels[0] != '&' && labels.length > 1) {
+            $key.classList.add("n2k-small-font");
+          }
+        }
+        if (typeof (key.size) !== "undefined") {
+          let newWidth = (key.size * (Ui.keyWidth + 2*(Ui.keyBorderWidth + Ui.keyMargin)) - 2*(Ui.keyMargin + Ui.keyBorderWidth));
+          $key.style.width = newWidth + "px";
+          $key.style.aspectRatio = newWidth/Ui.keyWidth;
+        }
+        else {
+          $key.style.width = Ui.keyWidth + "px";
+        }
+        return $key;
+      }
+
+      static makeKeyboardRow(row) {
+        let $row = Ui.d.createElement("div");
+        $row.classList.add("n2k-row");
+        for (let k of row.keys) {
+          let $key = Ui.makeKeyboardKey(k);
+          $row.appendChild($key);
+        }
+        $row.style.marginLeft = (row.offset * Ui.keyWidth) + "px";
+        return $row;
+      }
+
+      static makeKeyboard(kbd) {
+        let $container = Ui.d.createElement("div");
+        $container.classList.add("n2k-container");
+        for (let row of kbd.rows) {
+          let r = Ui.makeKeyboardRow(row);
+          $container.appendChild(r);
+        }
+        return $container;
+      }
+
+      static init() {
+        if (Ui.$kbd != null) {
+          Ui.$kbd.remove();
+          Ui.$kbd = null;
+        }
+        let rootStyle = getComputedStyle(Ui.d.body);
+        let bodyWidth = Ui.d.body.clientWidth;
+        Ui.keyBorderWidth = parseInt(rootStyle.getPropertyValue("--key-border-width").slice(0, -2));
+        Ui.keyMargin = parseInt(rootStyle.getPropertyValue("--key-margin").slice(0, -2));
+        //Ui.keyWidth = parseInt(rootStyle.getPropertyValue("--key-width").slice(0, -2));
+        Ui.keyWidth = bodyWidth/14 - 2*(Ui.keyBorderWidth + Ui.keyMargin);
+        Ui.keyWidth = Ui.keyWidth - 0.25*Ui.keyWidth/14;
+        let $kbd = Ui.makeKeyboard(Ui.keyboard);
+        Ui.$kbd = $kbd;
+        Ui.d.body.appendChild($kbd);
+      }
+    }
+    // These definitions should be inside the Ui class definition as static members, but Safari :(
+    Ui.keyboard = {
+        rows: [
+          {offset: 0.5,
+           keys: [{labels:['!', '1']}, {labels:['"', '2']}, {labels:['&pound;', '3']}, {labels:['$', '4']},
+                  {labels:['%', '5']}, {labels:['&', '6']}, {labels:["'", '7']}, {labels:['(', '8']},
+                  {labels:[')', '9']}, {labels:['&#8593;', '0']}, {labels:['=', '-']},
+                  {labels:['\\', '[']}, {labels:['_', ']']}]},
+          {offset: 0,
+           keys: [{labels:'GRAPH'}, {labels:'Q'}, {labels:'W'}, {labels:'E'}, {labels:'R'}, {labels:'T'},
+                  {labels:'Y'}, {labels:'U'}, {labels:'I'}, {labels:'O'}, {labels:'P'}, {labels:'@'},
+                  {labels:['CS', 'BACK']}]},
+          {offset: 0.25,
+           keys: [{labels:'CTRL'}, {labels:'A'}, {labels:'S'}, {labels: 'D'}, {labels:'F'}, {labels:'G'},
+                  {labels:'H'}, {labels:'J'}, {labels:'K'}, {labels:'L'}, {labels:['+',';']},
+                  {labels:['*', ':']}, {labels:['ESC', 'ENTER']}, {labels:['LF', 'CH']}]},
+          {offset: 0.75,
+           keys: [{labels:'SHIFT'}, {labels:'Z'}, {labels:'X'}, {labels:'C'}, {labels:'V'}, {labels:'B'},
+                  {labels:'N'}, {labels:'M'}, {labels:['<', ',']}, {labels: ['>', '.']}, {labels:['?','/']},
+                  {labels:'SHIFT'}]},
+          {offset: 0.75,
+           keys: [{labels:'&#8592;'}, {labels:'&#8593;'}, {labels:' ', size:8}, {labels:'&#8595;'}, {labels:'&#8594;'}]}
+        ]
+      };
+    Ui.d = document; // shorthand
+    Ui.$kbd = null;
+  </script>
+</body>
+</html>
