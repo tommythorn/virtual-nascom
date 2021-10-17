@@ -6,20 +6,43 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="viewport-fit=cover, user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
   <title>Nascom 2 Simulator</title>
   <style>
+    :root {
+      --font-family:Arial;
+      --font-size:1em;
+      --font-size-input:1em;
+      --container-width: 1000px;
+    }
+    @media (max-width: 1000px) {
+      :root {
+        --container-width:100%;
+      }
+    }
     html {
       display: table;
       margin: auto;
     }
     body {
       display: table-cell;
-      font-family: Verdana;
-      font-size: 12pt;
+      font-family: var(--font-family);
+      font-size: var(--font-size);
       background: #e0e0e0;
+    }
+    button {
+      font-family:var(--font-family);
+      font-size: var(--font-size-input);
+    }
+    select {
+      font-family:var(--font-family);
+      font-size: var(--font-size-input);
     }
     h1 {
       text-align: center;
+    }
+    #container {
+      width: var(--container-width);
     }
     #canvas-container {
       text-align: center;
@@ -37,53 +60,75 @@
     }
   </style>
 </head>
-<body onload="init()">
-  <h1>Nascom 2 Simulator</h1>
-  <div id="sub-header">Ported to the Web by: Peter Jensen</div>
-  <div id="canvas-container">
-    <canvas id="canvas" oncontextmenu="event.preventDefault()" width="720" height="384"></canvas>
+<body onload="onLoaded()">
+  <div id="container">
+    <h1>Nascom 2 Simulator</h1>
+    <div id="sub-header">Ported to the Web by: Peter Jensen</div>
+    <div id="canvas-container">
+      <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    </div>
+    <div id="controls">
+      <button id="reset">Reset</button>
+      <select id="pick">
+        <option>Avalanch.nas</option>
+        <option>BLS-Breakout.nas</option>
+        <option>BLS-Pascal-1.2.nas</option>
+        <option>BLS-Spacezap.nas</option>
+        <option>Hole.nas</option>
+        <option>KKS-3dmaze.nas</option>
+        <option>Monster.nas</option>
+        <option>Reversi.nas</option>
+        <option>Serpent.nas</option>
+        <option>Spcinv.nas</option>
+        <option>galaxian.nas</option>
+        <option>jailbrk.nas</option>
+        <option>pacman.nas</option>
+        <option>pacman2.nas</option>
+        <option>spacewar.nas</option>
+      </select>
+      <button id="load">Load</button>
+    </div>
+    <div style="width:0px; height:0px; overflow:hidden">
+      <textarea id="text"></textarea>
+    </div>
+    <div>
+      <h3>Usage</h3>
+      <ul>
+        <li>Pick the program to load, and click 'Load'</li>
+        <li>Execute the program with the NAS-SYS command 'E1000' (typically)</li>
+      </ul>
+      <h3>Notes</h3>
+      <ul>
+        <li>Adapted from: <A href="https://github.com/tommythorn/virtual-nascom">Tommy Thorn's Simulator</A></li>
+        <li>Built with <A href="https://emscripten.org">Emscripten</A></li>
+        <li>Runs with WebAssembly and Javascript</li>
+      </ul>
+      <h3>TODO</h3>
+      <ul>
+        <li>Figure out how to simulate 'save to tape'.  Maybe use IndexedDb or localStorage</li>
+      </ul>
+    </div>
   </div>
-  <div id="controls">
-    <button id="reset">Reset</button>
-    <select id="pick">
-      <option>Avalanch.nas</option>
-      <option>BLS-Breakout.nas</option>
-      <option>BLS-Pascal-1.2.nas</option>
-      <option>BLS-Spacezap.nas</option>
-      <option>Hole.nas</option>
-      <option>KKS-3dmaze.nas</option>
-      <option>Monster.nas</option>
-      <option>Reversi.nas</option>
-      <option>Serpent.nas</option>
-      <option>Spcinv.nas</option>
-      <option>galaxian.nas</option>
-      <option>jailbrk.nas</option>
-      <option>pacman.nas</option>
-      <option>pacman2.nas</option>
-      <option>spacewar.nas</option>
-    </select>
-    <button id="load">Load</button>
-  </div>
-  <div>
-    <h3>Usage</h3>
-    <ul>
-      <li>Pick the program to load, and click 'Load'</li>
-      <li>Execute the program with the NAS-SYS command 'E1000' (typically)</li>
-    </ul>
-    <h3>Notes</h3>
-    <ul>
-      <li>Adapted from: <A href="https://github.com/tommythorn/virtual-nascom">Tommy Thorn's Simulator</A></li>
-      <li>Built with <A href="https://emscripten.org">Emscripten</A></li>
-      <li>Runs with WebAssembly and Javascript</li>
-    </ul>
-    <h3>TODO</h3>
-    <ul>
-      <li>Figure out how to simulate 'save to tape'.  Maybe use IndexedDb or localStorage</li>
-    </ul>
-  </div>
-  <script type='text/javascript'>
+  <script>
+    // Initialization is done after the DOM has loaded AND the Wasm runtime is initialized.
+    // The order of these two events is depending on network speed, so make no assumption
+    // on which one occurs last.
+    var isRuntimeInitialized = false;
+    var isLoaded             = false;
+    function onInit() {
+      isRuntimeInitialized = true;
+      if (isLoaded)
+        init();
+    }
+    function onLoaded() {
+      isLoaded = true;
+      if (isRuntimeInitialized)
+        init();
+    }
     var Module = {
-      canvas: (function() { return document.getElementById('canvas'); })(),
+      noInitialRun: true, // invoke main manually after document load
+      canvas: null,       // initialized after document is loaded
+      onRuntimeInitialized: onInit,
       print: function(text) {
           if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
           console.log(text);
@@ -94,9 +139,10 @@
       }
     };
   </script>
-  <script src="virtual-nascom.js"></script>
   <script>
     var elems = {
+      canvas: null,
+      text: null,
       reset: null,
       pick: null,
       load: null
@@ -113,13 +159,40 @@
         .then(response => response.text())
         .then(text => load_nascom_string(text));
     }
-    function init() {
+    function canvasClick(e) {
+      e.preventDefault();
+      elems.canvas.blur();
+      elems.text.focus();
+    }
+    function keyDown(e) {
+      elems.canvas.dispatchEvent(e);
+    }
+    function setCanvasSize() {
+      const bodyWidth = document.body.clientWidth;
+      const canvasMul = Math.floor(bodyWidth/15);
+      const canvasWidth = canvasMul * 15;
+      const canvasHeight = canvasMul * 8;
+      elems.canvas.style.width = canvasWidth + "px";
+      elems.canvas.style.height = canvasHeight + "px";
+    }
+    function initElems() {
       elems.reset = document.getElementById("reset");
       elems.pick = document.getElementById("pick");
       elems.load = document.getElementById("load");
+      elems.text = document.getElementById("text");
+      elems.canvas = document.getElementById("canvas");
+    }
+    function init() {
+      initElems();
       elems.load.addEventListener("click", load);
       elems.reset.addEventListener("click", Module._reset_nascom);
+      elems.canvas.addEventListener("click", canvasClick);
+      document.body.addEventListener("keyDown", keyDown);
+      Module.canvas = elems.canvas;
+      setCanvasSize();
+      Module._main(); // Invoke main from wasm file
     }
   </script>
+  <script src="virtual-nascom.js"></script>
 </body>
 </html>
