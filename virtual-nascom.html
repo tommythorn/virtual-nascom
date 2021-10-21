@@ -216,7 +216,8 @@
 //            e.stopImmediatePropagation();
             let oldText = elems.text.value;
             setTimeout(function () {
-              const keyString = elems.text.value.replace(oldText, '');
+//              const keyString = elems.text.value.replace(oldText, '');
+              const keyString = elems.text.value;
 //              alert("keyString = '" + keyString + "', oldText = '" + oldText +"'");
               if (keyString.length < 1)
                 return;
@@ -227,6 +228,7 @@
               window.dispatchEvent(customKeydown);
               let customKeyup = new KeyboardEvent("keyup", customEventInit);
               window.dispatchEvent(customKeyup);
+              elems.text.value = "";
             }, 0);
           }
         }
