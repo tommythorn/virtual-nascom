@@ -13,11 +13,23 @@
       --font-family:Arial;
       --font-size:1em;
       --font-size-input:1em;
-      --container-width: 1000px;
+      --container-width:960x;
+      --canvas-width:960px;
+      --canvas-height:512px;
+      --canvas-margin:0px;
     }
-    @media (max-width: 1000px) {
+    @media (max-width: 959px) {
       :root {
-        --container-width:100%;
+        --container-width:414px;
+        --canvas-width:480px;
+        --canvas-height:256px;
+        --canvas-margin:-33px;
+      }
+    }
+    @media (max-width: 413px) {
+      :root {
+        --container-width:360px;
+        --canvas-margin:-48px;
       }
     }
     html {
@@ -43,11 +55,16 @@
     }
     #container {
       width: var(--container-width);
+      overflow:hidden;
     }
     #canvas-container {
       text-align: center;
+      overflow:hidden;
     }
     #canvas {
+      width:var(--canvas-width);
+      height:var(--canvas-height);
+      margin-left:var(--canvas-margin);
       border-radius:10px;
     }
     #controls {
@@ -64,6 +81,9 @@
   <div id="container">
     <h1>Nascom 2 Simulator</h1>
     <div id="sub-header">Ported to the Web by: Peter Jensen</div>
+    <div style="width:0px; height:0px; overflow:hidden">
+      <textarea id="text"></textarea>
+    </div>
     <div id="canvas-container">
       <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
     </div>
@@ -87,9 +107,7 @@
         <option>spacewar.nas</option>
       </select>
       <button id="load">Load</button>
-    </div>
-    <div style="width:0px; height:0px; overflow:hidden">
-      <textarea id="text"></textarea>
+      <button id="keyboard">Keyboard</button>
     </div>
     <div>
       <h3>Usage</h3>
@@ -145,7 +163,8 @@
       text: null,
       reset: null,
       pick: null,
-      load: null
+      load: null,
+      keyboard: null
     };
     function load_nascom_string(str) {
       let ptr = allocate(intArrayFromString(str), ALLOC_NORMAL);
@@ -159,21 +178,27 @@
         .then(response => response.text())
         .then(text => load_nascom_string(text));
     }
-    function canvasClick(e) {
+    function keyboardClick(e) {
       e.preventDefault();
-      elems.canvas.blur();
+      elems.keyboard.blur();
       elems.text.focus();
-    }
-    function keyDown(e) {
-      elems.canvas.dispatchEvent(e);
+      elems.canvas.scrollIntoView(true);
     }
     function setCanvasSize() {
       const bodyWidth = document.body.clientWidth;
       const canvasMul = Math.floor(bodyWidth/15);
-      const canvasWidth = canvasMul * 15;
-      const canvasHeight = canvasMul * 8;
+      let canvasWidth = canvasMul * 15;
+      let canvasHeight = canvasMul * 8;
+      let marginLeft = 0;
+      if (canvasWidth < 480) {
+        canvasWidth  = 480;
+        canvasHeight = 256;
+        marginLeft = (480 - bodyWidth)/2;
+        marginLeft = marginLeft > 48 ? 48 : marginLeft;
+      }
       elems.canvas.style.width = canvasWidth + "px";
       elems.canvas.style.height = canvasHeight + "px";
+      elems.canvas.style.marginLeft = -marginLeft + "px";
     }
     function initElems() {
       elems.reset = document.getElementById("reset");
@@ -181,15 +206,45 @@
       elems.load = document.getElementById("load");
       elems.text = document.getElementById("text");
       elems.canvas = document.getElementById("canvas");
+      elems.keyboard = document.getElementById("keyboard");
+    }
+    function setupKeyboardHandlers() {
+      // this is really only necessary for Android screen keyboards
+      function keyEventHandler(e) {
+        if (e.keyCode == 229) {
+          if (typeof e.custom === "undefined") {
+//            e.stopImmediatePropagation();
+            let oldText = elems.text.value;
+            setTimeout(function () {
+//              const keyString = elems.text.value.replace(oldText, '');
+              const keyString = elems.text.value;
+//              alert("keyString = '" + keyString + "', oldText = '" + oldText +"'");
+              if (keyString.length < 1)
+                return;
+              let customEventInit = {custom: true};
+              customEventInit = Object.assign(customEventInit, e);
+              customEventInit.keyCode = keyString.charCodeAt(keyString.length-1);
+              let customKeydown = new KeyboardEvent("keydown", customEventInit);
+              window.dispatchEvent(customKeydown);
+              let customKeyup = new KeyboardEvent("keyup", customEventInit);
+              window.dispatchEvent(customKeyup);
+              elems.text.value = "";
+            }, 0);
+          }
+        }
+      }
+
+      // Setup handler for keydown event
+      window.addEventListener("keydown", keyEventHandler, true);
     }
     function init() {
       initElems();
       elems.load.addEventListener("click", load);
       elems.reset.addEventListener("click", Module._reset_nascom);
-      elems.canvas.addEventListener("click", canvasClick);
-      document.body.addEventListener("keyDown", keyDown);
+      elems.keyboard.addEventListener("click", keyboardClick);
+      setupKeyboardHandlers();
       Module.canvas = elems.canvas;
-      setCanvasSize();
+      //setCanvasSize();
       Module._main(); // Invoke main from wasm file
     }
   </script>
