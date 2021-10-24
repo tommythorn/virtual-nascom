@@ -1,0 +1,26 @@
+# sdl-test: A small SDL key event info tool
+
+CC=gcc -std=c99
+
+SOURCES=sdl-test.c
+OBJECTS=$(SOURCES:.c=.o)
+
+OPTIMIZE=-O2
+WARN=-Wall -Wno-parentheses
+CFLAGS=$(OPTIMIZE) $(WARN) $(shell sdl2-config --cflags)
+
+sdl-test: $(OBJECTS)
+	$(CC) $(CWARN) $^ -o $@ $(shell sdl2-config --libs) -lSDL2_ttf
+
+sdl-test.js sdl-test.wasm &: $(SOURCES)
+	emcc $(SOURCES) $(OPTIMIZE) \
+	-s WASM=1 -s USE_SDL=2 -s USE_SDL_TTF=2 \
+	-s EXPORTED_FUNCTIONS='["_main"]' \
+	--preload-file FreeSans.ttf -o sdl-test.js
+
+.PHONY : clean wasm
+
+wasm: sdl-test.js sdl-test.wasm
+
+clean:
+	rm -f $(OBJECTS) sdl-test

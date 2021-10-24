@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<!--
+  Author: Peter Jensen
+  
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="viewport-fit=cover, user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+  <title>SDL Test</title>
+  <style>
+    :root {
+      --font-family:Arial;
+      --font-size:1em;
+      --font-size-input:1em;
+      --container-width:960x;
+      --canvas-width:360px;
+      --canvas-height:360px;
+      --canvas-margin:0px;
+    }
+    @media (max-width: 959px) {
+      :root {
+        --container-width:360px;
+        --canvas-width:180px;
+        --canvas-height:180px;
+      }
+    }
+    html {
+      display: table;
+      margin: auto;
+    }
+    body {
+      display: table-cell;
+      font-family: var(--font-family);
+      font-size: var(--font-size);
+      background: #e0e0e0;
+    }
+    button {
+      font-family:var(--font-family);
+      font-size: var(--font-size-input);
+    }
+    select {
+      font-family:var(--font-family);
+      font-size: var(--font-size-input);
+    }
+    h1 {
+      text-align: center;
+    }
+    #container {
+      width: var(--container-width);
+      overflow:hidden;
+    }
+    #canvas-containers {
+      text-align: center;
+      overflow:hidden;
+    }
+    .canvas-container {
+      display:table-cell;
+    }
+    .canvas {
+      width:var(--canvas-width);
+      height:var(--canvas-height);
+      margin-left:var(--canvas-margin);
+      border-radius:10px;
+    }
+    #controls {
+      text-align: center;
+    }
+    #sub-header {
+      text-align: center;
+      font-style: italic;
+      padding-bottom: 10px;
+    }
+  </style>
+</head>
+<body onload="init()">
+  <div id="container">
+    <div style="width:0px; height:0px; overflow:hidden">
+      <textarea id="text"></textarea>
+    </div>
+    <div id="canvas-containers">
+      <div class="canvas-container">
+        <h3>SDL Keydown</h3>
+        <canvas id="canvas" class="canvas" oncontextmenu="event.preventDefault()" width="180" height="180"></canvas>
+      </div>
+      <div class="canvas-container">
+        <h3>DOM Keydown</h3>
+        <canvas id="canvasDom" class="canvas" oncontextmenu="event.preventDefault()" width="180" height="180"></canvas>
+      </div>
+    </div>
+    <div id="controls">
+      <button id="keyboard">Keyboard</button>
+    </div>
+  </div>
+  <script>
+    var Module = {
+      //noInitialRun: true, // invoke main manually after document load
+      canvas: null,       // initialized after document is loaded
+      print: function(text) {
+          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+          console.log(text);
+      },
+      printErr: function(text) {
+          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+          console.error(text);
+      }
+    };
+  </script>
+  <script src="sdl-test.js"></script>
+  <script>
+    var elems = {
+      canvasSdl: null,
+      canvasDom: null,
+      keyboard: null,
+      text: null
+    };
+    var ctx;
+    var keyDownCount = 0;
+
+    function keyboardClick(e) {
+      e.preventDefault();
+      elems.keyboard.blur();
+      elems.text.focus();
+      elems.canvas.scrollIntoView(true);
+    }
+    function initElems() {
+      elems.text = document.getElementById("text");
+      elems.canvasSdl = document.getElementById("canvas");
+      elems.canvasDom = document.getElementById("canvasDom");
+      elems.keyboard = document.getElementById("keyboard");
+    }
+    function keyDown(e) {
+      const margin = 25;
+      keyDownCount++;
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, 180, 180);
+      ctx.fillStyle = "white";
+      ctx.fillText("count: " + keyDownCount, margin, 20);
+      ctx.fillText("code: " + e.code, margin, 40);
+      ctx.fillText("key: " + e.key, margin, 60);
+      ctx.fillText("keyCode: " + e.keyCode, margin, 80);
+      ctx.fillText("shiftKey: " + e.shiftKey, margin, 100);
+      ctx.fillText("altKey: " + e.altKey, margin, 120);
+      ctx.fillText("ctrlKey: " + e.ctrlKey, margin, 140);
+      ctx.fillText("metaKey: " + e.metaKey, margin, 160);
+//      ctx.fillText("text.value: " + $text.value, margin, 180);
+//      ctx.fillText("newChar: " + event.detail.newChar, margin, 200);
+    }
+
+    function init() {
+      initElems();
+      elems.keyboard.addEventListener("click", keyboardClick);
+      window.addEventListener("keydown", keyDown);
+      Module.canvas = elems.canvasSdl;
+      ctx = elems.canvasDom.getContext("2d");
+      ctx.fillStyle = "black";
+      ctx.font = "16px sans-serif";
+      ctx.fillRect(0, 0, 180, 180);
+      //Module._main(); // Invoke main from wasm file
+    }
+  </script>
+</body>
+</html>
