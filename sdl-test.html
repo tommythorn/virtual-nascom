@@ -90,6 +90,7 @@
       </div>
     </div>
     <div id="controls">
+      <button id="fakeShift">Enable fake shift key</button>
       <button id="keyboard">Keyboard</button>
     </div>
   </div>
@@ -113,10 +114,12 @@
       canvasSdl: null,
       canvasDom: null,
       keyboard: null,
-      text: null
+      text: null,
+      fakeShift:null
     };
     var ctx;
     var keyDownCount = 0;
+    var useFakeShift = false;
 
     function keyboardClick(e) {
       e.preventDefault();
@@ -124,13 +127,23 @@
       elems.text.focus();
       elems.canvas.scrollIntoView(true);
     }
+    function fakeShiftClick() {
+      useFakeShift = !useFakeShift;
+      if (useFakeShift) {
+        elems.fakeShift.innerText = "Disable fake shift key";
+      }
+      else {
+        elems.fakeShift.innerText = "Enable fake shift key";
+      }
+    }
     function initElems() {
       elems.text = document.getElementById("text");
       elems.canvasSdl = document.getElementById("canvas");
       elems.canvasDom = document.getElementById("canvasDom");
       elems.keyboard = document.getElementById("keyboard");
+      elems.fakeShift = document.getElementById("fakeShift");
     }
-    function keyDown(e) {
+    function updateCanvas(e) {
       const margin = 25;
       keyDownCount++;
       ctx.fillStyle = "black";
@@ -147,11 +160,27 @@
 //      ctx.fillText("text.value: " + $text.value, margin, 180);
 //      ctx.fillText("newChar: " + event.detail.newChar, margin, 200);
     }
-
+    const iosKeysSansShift = [':', '(', ')', '$', '@', '"', '?', '!'];
+    function keyUpDown(e) {
+      if (useFakeShift && iosKeysSansShift.includes(e.key) && !e.shiftKey) {
+        let shiftEventInit = {};
+        shiftEventInit = Object.assign(shiftEventInit, e);
+        shiftEventInit.keyCode = 16; // keyCode for SHIFT
+        shiftEventInit.key = "Shift";
+        shiftEventInit.shiftKey = true;
+        // Send pseudo shift event
+        const shiftEvent = new KeyboardEvent(e.type, shiftEventInit);
+        window.dispatchEvent(shiftEvent);
+      }
+      if (e.type === "keydown")
+        updateCanvas(e);
+    }
     function init() {
       initElems();
       elems.keyboard.addEventListener("click", keyboardClick);
-      window.addEventListener("keydown", keyDown);
+      window.addEventListener("keydown", keyUpDown, true);
+      window.addEventListener("keyup", keyUpDown, true);
+      elems.fakeShift.addEventListener("click", fakeShiftClick);
       Module.canvas = elems.canvasSdl;
       ctx = elems.canvasDom.getContext("2d");
       ctx.fillStyle = "black";
