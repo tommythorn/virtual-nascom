@@ -75,17 +75,25 @@
       font-style: italic;
       padding-bottom: 10px;
     }
+    #hidden-textarea {
+      position:absolute;
+      z-index:100;
+      width:0px;
+      height:0px;
+      margin-top:calc(-4px - var(--canvas-height));
+      overflow:hidden;
+    }
   </style>
 </head>
 <body onload="onLoaded()">
   <div id="container">
     <h1>Nascom 2 Simulator</h1>
     <div id="sub-header">Ported to the Web by: Peter Jensen</div>
-    <div style="width:0px; height:0px; overflow:hidden">
-      <textarea id="text"></textarea>
-    </div>
     <div id="canvas-container">
       <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    </div>
+    <div id="hidden-textarea">
+      <textarea id="text"></textarea>
     </div>
     <div id="controls">
       <button id="reset">Reset</button>
@@ -160,6 +168,7 @@
   <script>
     var elems = {
       canvas: null,
+      canvasContainer: null,
       text: null,
       reset: null,
       pick: null,
@@ -182,7 +191,10 @@
       e.preventDefault();
       elems.keyboard.blur();
       elems.text.focus();
-      elems.canvas.scrollIntoView(true);
+      elems.canvasContainer.scrollIntoView(true);
+    }
+    function textFocus() {
+      setTimeout(() => elems.canvasContainer.scrollIntoView(true), 1000);
     }
     function setCanvasSize() {
       const bodyWidth = document.body.clientWidth;
@@ -206,6 +218,7 @@
       elems.load = document.getElementById("load");
       elems.text = document.getElementById("text");
       elems.canvas = document.getElementById("canvas");
+      elems.canvasContainer = document.getElementById("canvas-container");
       elems.keyboard = document.getElementById("keyboard");
     }
     function setupKeyboardHandlers() {
@@ -242,6 +255,7 @@
       elems.load.addEventListener("click", load);
       elems.reset.addEventListener("click", Module._reset_nascom);
       elems.keyboard.addEventListener("click", keyboardClick);
+      elems.text.addEventListener("focus", textFocus);
       setupKeyboardHandlers();
       Module.canvas = elems.canvas;
       //setCanvasSize();
