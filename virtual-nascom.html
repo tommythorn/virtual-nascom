@@ -83,6 +83,9 @@
       margin-top:calc(-4px - var(--canvas-height));
       overflow:hidden;
     }
+    #file-info {
+      width:30px;
+    }
   </style>
 </head>
 <body onload="onLoaded()">
@@ -117,11 +120,25 @@
       </select>
       <button id="load">Load</button>
       <button id="keyboard">Keyboard</button>
+      <input type="file" id="file-input" value="Pick cassette input file" style="display:none"/>
+      <button id="file-pick">Pick a .cas file</button>
+      <span id="file-info">No file chosen</span>
+      <button id="file-rewind">Rewind</button>
+  
     </div>
     <div>
       <h3>Usage</h3>
       <ul>
-        <li>Pick the program to load, and click 'Load'</li>
+        <li>There are two ways to load a program into memory:
+          <ul>
+            <li>Pick one of the available programs to load, and click 'Load'.</li>
+            <li>Upload your own .cas file, by clicking 'Pick a .cas file'.<br>
+                This makes the program available for cassette input.<br>
+                Issue NAS-SYS command 'R' to load the program into memory.<br>
+                Click 'Rewind', to allow for multiple 'R' commands.
+            </li>
+          </ul>
+        </li>
         <li>Execute the program with the NAS-SYS command 'E1000' (typically)</li>
       </ul>
       <h3>Notes</h3>
@@ -167,6 +184,10 @@
     };
   </script>
   <script>
+    const log = console.log;
+    var $ = (sel) => {  // jQuery-like shorthand
+      return document.querySelector(sel);
+    }
     var elems = {
       canvas: null,
       canvasContainer: null,
@@ -174,12 +195,29 @@
       reset: null,
       pick: null,
       load: null,
-      keyboard: null
+      keyboard: null,
+      fileInput: null,
+      filePick: null,
+      fileInfo: null,
+      fileRewind: null
     };
+
     function load_nascom_string(str) {
       let ptr = allocate(intArrayFromString(str), ALLOC_NORMAL);
       Module._load_nascom_string(ptr);
       _free(ptr);
+    }
+    function cas_load_input(str) {
+      let intArray = new Array(str.length);
+      for (let i = 0; i < str.length; ++i) {
+        intArray[i] = str.charCodeAt(i);
+      }
+      let ptr = allocate(intArray, ALLOC_NORMAL);
+      Module._cas_load_input(ptr, intArray.length);
+      _free(ptr);
+    }
+    function cas_rewind() {
+      Module._cas_rewind();
     }
     function load(e) {
       const fileName = elems.pick.options[elems.pick.selectedIndex].innerText;
@@ -214,13 +252,17 @@
       elems.canvas.style.marginLeft = -marginLeft + "px";
     }
     function initElems() {
-      elems.reset = document.getElementById("reset");
-      elems.pick = document.getElementById("pick");
-      elems.load = document.getElementById("load");
-      elems.text = document.getElementById("text");
-      elems.canvas = document.getElementById("canvas");
-      elems.canvasContainer = document.getElementById("canvas-container");
-      elems.keyboard = document.getElementById("keyboard");
+      elems.reset           = $("#reset");
+      elems.pick            = $("#pick");
+      elems.load            = $("#load");
+      elems.text            = $("#text");
+      elems.canvas          = $("#canvas");
+      elems.canvasContainer = $("#canvas-container");
+      elems.keyboard        = $("#keyboard");
+      elems.fileInput       = $("#file-input");
+      elems.filePick        = $("#file-pick");
+      elems.fileInfo        = $("#file-info");
+      elems.fileRewind      = $("#file-rewind");
     }
     function setupKeyboardHandlers() {
       // this is really only necessary for Android screen keyboards
@@ -251,8 +293,27 @@
       // Setup handler for keydown event
       window.addEventListener("keydown", keyEventHandler, true);
     }
+
+    function fileInputEventChange(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.addEventListener('load', (e) => {
+        cas_load_input(e.target.result);
+      });
+      reader.readAsBinaryString(file);
+      elems.fileInfo.innerHTML = file.name;
+      //log(file.name);
+    }
+    function filePickClick() {
+      const clickEvent = new MouseEvent('click');
+      elems.fileInput.dispatchEvent(clickEvent);
+    }
+
     function init() {
       initElems();
+      elems.fileInput.addEventListener('change', fileInputEventChange);
+      elems.filePick.addEventListener('click', filePickClick);
+      elems.fileRewind.addEventListener('click', cas_rewind);
       elems.load.addEventListener("click", load);
       elems.reset.addEventListener("click", Module._reset_nascom);
       elems.keyboard.addEventListener("click", keyboardClick);

@@ -19,7 +19,7 @@ virtual-nascom: $(OBJECTS)
 virtual-nascom.js: $(SOURCES)
 	emcc $(SOURCES) $(OPTIMIZE) \
 	-s WASM=1 -s USE_SDL=2 \
-	-s EXPORTED_FUNCTIONS='["_main", "_reset_nascom", "_load_nascom_string", "_malloc", "_free"]' \
+	-s EXPORTED_FUNCTIONS='["_main", "_reset_nascom", "_load_nascom_string", "_cas_load_input", "_cas_rewind", "_malloc", "_free"]' \
 	-s EXPORTED_RUNTIME_METHODS=allocate,intArrayFromString \
 	--preload-file basic.nal --preload-file nassys3.nal -o $@
 

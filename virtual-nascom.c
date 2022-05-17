@@ -590,6 +590,35 @@ EMSCRIPTEN_KEEPALIVE void load_nascom_string(const char *str) {
   if (verbose)
       printf(". Successfully loaded %d bytes\n", count);
 }
+
+static char     *cas_input_data  = NULL;
+static uint32_t  cas_input_len   = 0;
+static uint32_t  cas_input_index = 0;
+EMSCRIPTEN_KEEPALIVE void cas_load_input(const char *str, uint32_t len) {
+  if (cas_input_data) {
+    free(cas_input_data);
+  }
+  cas_input_len  = len;
+  cas_input_data = malloc(cas_input_len);
+  memcpy(cas_input_data, str, cas_input_len);
+  cas_input_index = 0;
+//  fprintf(stdout, "cas_load_input: len: %d\n", cas_input_len);
+}
+EMSCRIPTEN_KEEPALIVE void cas_rewind() {
+  cas_input_index = 0;
+}
+EMSCRIPTEN_KEEPALIVE uint8_t cas_get_next() {
+//  fprintf(stdout, "cas_get_next called -> ");
+  uint8_t retValue = 0;
+  if (cas_input_data && cas_input_index < cas_input_len) {
+    retValue = cas_input_data[cas_input_index++];
+  }
+//  fprintf(stdout, "%d\n", retValue);
+  return retValue;
+}
+EMSCRIPTEN_KEEPALIVE uint8_t cas_eof() {
+  return (cas_input_data == NULL || cas_input_index >= cas_input_len);
+}
 #endif
 
 int main(int argc, char **argv)
@@ -769,6 +798,31 @@ int in(unsigned int port)
         /* printf("[%d]", keyboard.index); */
         assert(keyboard.index < 8);
         return ~keyboard.mask[keyboard.index];
+#ifdef __EMSCRIPTEN__
+    case 1:
+        if (verbose) {
+          static uint32_t pcount1 = 0;
+          if (pcount1++ > 5000) {
+            fprintf(stdout, "%d: in(1): tape_led:%d, cas_eof():%d\n", pcount1, tape_led, cas_eof());
+            pcount1 = 0;
+          }
+        }
+        if (!cas_eof() && tape_led) {
+            return cas_get_next();
+        }
+        return 0;
+    case 2:
+        /* Status port on the UART */
+        if (verbose) {
+          static uint32_t pcount2 = 0;
+          if (pcount2++ > 5000) {
+            fprintf(stdout, "%d: in(2): tape_led:%d, cas_eof():%d\n", pcount2, tape_led, cas_eof());
+            pcount2 = 0;
+          }
+        }
+        return UART_TBR_EMPTY |
+            ((!cas_eof() && tape_led) ? UART_DATA_READY : 0);
+#else
     case 1:
         if (serial_input_available & tape_led) {
             char ch = fgetc(serial_in);
@@ -781,6 +835,7 @@ int in(unsigned int port)
         /* Status port on the UART */
         return UART_TBR_EMPTY |
             (serial_input_available & tape_led ? UART_DATA_READY : 0);
+#endif            
     default:
         if (verbose)
             fprintf(stdout, "IN <- [%02x]\n", port);
