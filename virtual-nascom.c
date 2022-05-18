@@ -644,7 +644,7 @@ int main(int argc, char **argv)
     while ((c = getopt(argc, argv, "i:m:v")) != EOF)
         switch (c) {
         case 'i':
-            serial_in = fopen(optarg, "r");
+            serial_in = fopen(optarg, "rb");
             if (!serial_in)
                 perror(optarg), exit(1);
             //printf("serial input %s -> %p\n", optarg, serial_in);
@@ -825,16 +825,23 @@ int in(unsigned int port)
 #else
     case 1:
         if (serial_input_available & tape_led) {
-            char ch = fgetc(serial_in);
-            serial_input_available = !feof(serial_in);
+            uint8_t ch = fgetc(serial_in);
+            serial_input_available = feof(serial_in) == 0;
+            if (verbose) {
+              static uint32_t byte_count = 0;
+              fprintf(stdout, "%04x: IN(%02x) -> %02x, serial_input_available: %d\n", byte_count, port, ch, serial_input_available);
+              byte_count++;
+            }
             return ch;
         }
         else
             return 0;
-    case 2:
+    case 2: {
         /* Status port on the UART */
-        return UART_TBR_EMPTY |
-            (serial_input_available & tape_led ? UART_DATA_READY : 0);
+        uint8_t retVal;
+        retVal = UART_TBR_EMPTY | (serial_input_available && tape_led ? UART_DATA_READY : 0);
+        return retVal;
+    }
 #endif            
     default:
         if (verbose)
