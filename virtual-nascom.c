@@ -693,7 +693,7 @@ int main(int argc, char **argv)
 
     puts("Starting Z80 Simulator\n");
 #ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop(em_main_loop, 30, 1);
+    emscripten_set_main_loop(em_main_loop, 0, 1); // Use default refresh rate (60fps)
 #else
     simz80(pc, t_sim_delay, sim_delay);
 #endif
