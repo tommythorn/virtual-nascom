@@ -625,7 +625,7 @@ int main(int argc, char **argv)
 {
     int c;
 
-    serial_out = fopen("serialout.txt", "a+");
+    serial_out = fopen("serialout.txt", "ab+");
 
     if (!serial_out)
         exit(3);
