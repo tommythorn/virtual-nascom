@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <!--
-  Author: Peter Jensen
+  Author: Peter Jensen and Tommy Thorn
 -->
 <html>
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="viewport-fit=cover, user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
-  <title>Nascom 2 Simulator</title>
+  <title>Nascom 2</title>
   <style>
     :root {
       --font-family:Arial;
@@ -91,7 +91,7 @@
 <body onload="onLoaded()">
   <div id="container">
     <h1>Nascom 2 Simulator</h1>
-    <div id="sub-header">Ported to the Web by: Peter Jensen</div>
+    <div id="sub-header">By: Peter Jensen and Tommy Thorn</div>
     <div id="canvas-container">
       <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
     </div>
@@ -124,7 +124,7 @@
       <button id="file-pick">Pick a .cas file</button>
       <span id="file-info">No file chosen</span>
       <button id="file-rewind">Rewind</button>
-  
+
     </div>
     <div>
       <h3>Usage</h3>
@@ -143,7 +143,6 @@
       </ul>
       <h3>Notes</h3>
       <ul>
-        <li>Adapted from: <A href="https://github.com/tommythorn/virtual-nascom">Tommy Thorn's Simulator</A></li>
         <li>Built with <A href="https://emscripten.org">Emscripten</A></li>
         <li>Runs with WebAssembly and Javascript</li>
       </ul>
@@ -264,10 +263,39 @@
       elems.fileInfo        = $("#file-info");
       elems.fileRewind      = $("#file-rewind");
     }
+    var useiOSFakeShift = true;
     function setupKeyboardHandlers() {
-      // this is really only necessary for Android screen keyboards
+      // this is for Android and iOS screen keyboards
+
+      // XXX CapsLock still doesn't work (it has no effect)
+      const iosKeysAddShift = [':', '(', ')', '$', '&', '@', '"', '?', '!'];
+      const iosKeysDelShift = ['[', ']', '=', '\\', '.', ',', '\''];
+
       function keyEventHandler(e) {
-        if (e.keyCode == 229) {
+        if (useiOSFakeShift) {
+            if (iosKeysAddShift.includes(e.key) && !e.shiftKey) {
+                let shiftEventInit = {};
+                shiftEventInit = Object.assign(shiftEventInit, e);
+                shiftEventInit.keyCode = 16; // keyCode for SHIFT
+                shiftEventInit.key = "Shift";
+                shiftEventInit.shiftKey = true;
+                // Send pseudo shift event
+                const shiftEvent = new KeyboardEvent(e.type, shiftEventInit);
+                window.dispatchEvent(shiftEvent);
+            } else if (iosKeysDelShift.includes(e.key) && e.shiftKey) {
+                // Magic here to undo the shift from e
+                let shiftEventInit = {};
+                shiftEventInit = Object.assign(shiftEventInit, e);
+                shiftEventInit.keyCode = 16; // keyCode for SHIFT
+                shiftEventInit.key = "Shift";
+                shiftEventInit.shiftKey = true;
+                // Send pseudo shift event
+                const shiftEvent = new KeyboardEvent(e.type == "keyup" ? "keydown" : "keyup", shiftEventInit);
+                window.dispatchEvent(shiftEvent);
+            }
+            if (e.type === "keydown")
+               updateCanvas(e);
+        } else if (e.keyCode == 229) {
           if (typeof e.custom === "undefined") {
 //            e.stopImmediatePropagation();
             let oldText = elems.text.value;
@@ -292,6 +320,9 @@
 
       // Setup handler for keydown event
       window.addEventListener("keydown", keyEventHandler, true);
+      if (useiOSFakeShift) {
+        window.addEventListener("keyup", keyEventHandler, true);
+      }
     }
 
     function fileInputEventChange(event) {
