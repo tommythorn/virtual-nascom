@@ -71,8 +71,14 @@ static bool go_fast = false;
 static int t_sim_delay = SLOW_DELAY;
 
 
+/* The Nascom 2 video interface uses a 8x12 matrix for PAL (europe) and 8x14 for NTSC (US).
+   The graphics character set uses the top 64 chars for a 2x3 block of "graphics", for a
+   96x48 graphics.  Unfortunately the block graphic pixels are 4x5, so especially for PAL
+   output looks terrible.  We use 15 for now, but it's tempting to change the graphic ROM
+   use use 4x4 pixels and switch font height to 12. */
+
 #define FONT_H_PITCH 16
-#define FONT_H       15			/* 15 or 14 - check docs */
+#define FONT_H       15  // Actual hardware uses 14 for US/NTSC, and 12 PAL/Europe
 #define FONT_W        8
 
 #define DISPLAY_WIDTH   480
